@@ -1,4 +1,4 @@
-devboard-clientlib-mbed
-=======================
+BERG Cloud for mbed
+===================
 
-The mbed client libraries to communicate with the BERG Cloud Devboard
+This repo will contain the libraries to use on the mbed platform in order to interface with the BERG Cloud Devshield.
