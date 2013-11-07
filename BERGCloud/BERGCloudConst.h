@@ -2,7 +2,7 @@
 
 BERGCloud constant definitions
 
-Copyright (c) 2013 BERG Ltd. http://bergcloud.com/
+Copyright (c) 2013 BERG Cloud Ltd. http://bergcloud.com/
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,10 +28,10 @@ THE SOFTWARE.
  * Sizes of things
  */
 
-#define BC_EUI64_SIZE_BYTES             8
-#define BC_ADDRESS_SIZE_BYTES           8
+#define BC_EUI64_SIZE_BYTES            8
+#define BC_ADDRESS_SIZE_BYTES          8
 #define BC_CLAIMCODE_SIZE_BYTES        20
-#define BC_PRODUCT_KEY_SIZE_BYTES       16
+#define BC_PRODUCT_KEY_SIZE_BYTES      16
 #define BC_PRINT_MAX_CHARS             26
 
 /*

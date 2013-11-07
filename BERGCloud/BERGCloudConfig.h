@@ -32,6 +32,8 @@ THE SOFTWARE.
 #define BERGCLOUD_LOG
 
 /* Include pack/unpack */
+#ifndef LINUX
 #define BERGCLOUD_PACK_UNPACK
+#endif
 
 #endif // #ifndef BERGCLOUDCONFIG_H

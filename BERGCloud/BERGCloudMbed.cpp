@@ -1,10 +1,28 @@
 /*
- *  BERGCloud library for mbed
- *
- *  Copyright (c) 2013 BERG Ltd.
- *
- *  TODO: License
- */
+
+BERGCloud library for mbed
+
+Copyright (c) 2013 BERG Cloud Ltd. http://bergcloud.com/
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+*/
 
 #include <cstdint>
 #include <cstddef>
@@ -12,118 +30,118 @@
 
 #include "BERGCloudMbed.h"
 
-uint16_t CBERGCloud::SPITransaction(uint8_t *pDataOut, uint8_t *pDataIn, uint16_t dataSize, bool finalCS)
+uint16_t BERGCloudMbed::SPITransaction(uint8_t *dataOut, uint8_t *dataIn, uint16_t dataSize, bool finalCS)
 {
   uint16_t i;
 
-  if ( (pDataOut == NULL) || (pDataIn == NULL) || (m_pSPI == NULL) )
+  if ( (dataOut == NULL) || (dataIn == NULL) || (spi == NULL) )
   {
     _LOG("Invalid parameter (CBERGCloud::SPITransaction)\r\n");
     return 0;
   }
 
-  m_pnSSELPin->write(0);
+  nSSELPin->write(0);
 
   for (i = 0; i < dataSize; i++)
   {
-    *pDataIn++ = m_pSPI->write(*pDataOut++);
+    *dataIn++ = spi->write(*dataOut++);
   }
 
   if (finalCS)
   {
-    m_pnSSELPin->write(1);
+    nSSELPin->write(1);
   }
 
   return dataSize;
 }
 
-void CBERGCloud::timerReset(void)
+void BERGCloudMbed::timerReset(void)
 {
-  m_pTimer->reset();
+  timer->reset();
 }
 
-uint32_t CBERGCloud::timerRead_mS(void)
+uint32_t BERGCloudMbed::timerRead_mS(void)
 {
-  return m_pTimer->read_ms();
+  return timer->read_ms();
 }
 
-void CBERGCloud::begin(PinName _MOSIPin, PinName _MISOPin, PinName _SCLKPin, PinName _nSSELPin)
+void BERGCloudMbed::begin(PinName _MOSIPin, PinName _MISOPin, PinName _SCLKPin, PinName _nSSELPin)
 {
   /* Call base class method */
-  CBERGCloudBase::begin();
+  BERGCloudBase::begin();
 
   /* Configure nSSEL control pin */
-  m_pnSSELPin = new DigitalOut(_nSSELPin);
+  nSSELPin = new DigitalOut(_nSSELPin);
 
-  if (m_pnSSELPin == NULL)
+  if (nSSELPin == NULL)
   {
-    _LOG("m_pnSSELPin is NULL (CBERGCloud::begin)\r\n");
+    _LOG("nSSELPin is NULL (CBERGCloud::begin)\r\n");
     return;
   }
 
-  m_pnSSELPin->write(1);
+  nSSELPin->write(1);
 
   /* Configure SPI */
-  m_pSPI = new SPI(_MOSIPin, _MISOPin, _SCLKPin);
+  spi = new SPI(_MOSIPin, _MISOPin, _SCLKPin);
 
-  if (m_pSPI  == NULL)
+  if (spi  == NULL)
   {
-    _LOG("m_pSPI is NULL (CBERGCloud::begin)\r\n");
-    delete m_pnSSELPin;
+    _LOG("spi is NULL (CBERGCloud::begin)\r\n");
+    delete nSSELPin;
     return;
   }
 
-  m_pSPI->format(8, 0); /* 8-bits; SPI MODE 0 */
-  m_pSPI->frequency(4000000); /* 4MHz */
+  spi->format(8, 0); /* 8-bits; SPI MODE 0 */
+  spi->frequency(4000000); /* 4MHz */
 
   /* Configure timer */
-  m_pTimer = new Timer();
+  timer = new Timer();
 
-  if (m_pTimer  == NULL)
+  if (timer  == NULL)
   {
-    _LOG("m_pTimer is NULL (CBERGCloud::begin)\r\n");
-    delete m_pnSSELPin;
-    delete m_pSPI;
+    _LOG("timer is NULL (CBERGCloud::begin)\r\n");
+    delete nSSELPin;
+    delete spi;
     return;
   }
 
-  m_pTimer->start();
+  timer->start();
 }
 
-void CBERGCloud::end()
+void BERGCloudMbed::end()
 {
-  if (m_pnSSELPin != NULL)
+  if (nSSELPin != NULL)
   {
-    delete m_pnSSELPin;
+    delete nSSELPin;
   }
 
-  if (m_pSPI != NULL)
+  if (spi != NULL)
   {
-    delete m_pSPI;
+    delete spi;
   }
 
-  if (m_pTimer != NULL)
+  if (timer != NULL)
   {
-    delete m_pTimer;
+    delete timer;
   }
 
   /* Call base class method */
-  CBERGCloudBase::end();
+  BERGCloudBase::end();
 }
 
-bool CBERGCloud::print(std::string& s)
+bool BERGCloudMbed::print(std::string& s)
 {
   return print(s.c_str());
 }
 
 #ifdef BERGCLOUD_PACK_UNPACK
 
-bool CMessage::pack(std::string& s)
+bool BERGCloudMessage::pack(std::string& s)
 {
   return pack(s.c_str());
 }
 
-bool CMessage::unpack(std::string& s)
+bool BERGCloudMessage::unpack(std::string& s)
 {
   uint16_t sizeInBytes;
 
@@ -138,8 +156,8 @@ bool CMessage::unpack(std::string& s)
     return false;
   }
 
-  std::string tmp(m_data[m_read], sizeInBytes);
-  m_read += sizeInBytes;
+  std::string tmp(buffer[bytesRead], sizeInBytes);
+  bytesRead += sizeInBytes;
 
   s = tmp;
 

@@ -4,7 +4,7 @@ BERGCloud message pack/unpack
 
 Based on MessagePack http://msgpack.org/
 
-Copyright (c) 2013 BERG Ltd. http://bergcloud.com/
+Copyright (c) 2013 BERG Cloud Ltd. http://bergcloud.com/
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,13 +28,13 @@ THE SOFTWARE.
 
 #include <stddef.h> /* For NULL */
 #include <string.h> /* For memcpy() */
-#include "MessageBase.h"
+#include "BERGCloudMessageBase.h"
 
-CMessageBase::CMessageBase(void)
+BERGCloudMessageBase::BERGCloudMessageBase(void)
 {
 }
 
-CMessageBase::~CMessageBase(void)
+BERGCloudMessageBase::~BERGCloudMessageBase(void)
 {
 }
 
@@ -72,16 +72,16 @@ CMessageBase::~CMessageBase(void)
 #define _MAX_FIXARRAY       (_MP_FIXARRAY_MAX - _MP_FIXARRAY_MIN)
 #define _MAX_FIXMAP         (_MP_FIXMAP_MAX - _MP_FIXMAP_MIN)
 
-uint16_t CMessageBase::strlen(const char *pString)
+uint16_t BERGCloudMessageBase::strlen(const char *string)
 {
   uint16_t strLen = 0;
 
   /* Find string length */
-  if (pString != NULL)
+  if (string != NULL)
   {
-    while ((strLen < UINT16_MAX) && (*pString != '\0'))
+    while ((strLen < UINT16_MAX) && (*string != '\0'))
     {
-       pString++;
+       string++;
        strLen++;
     }
   }
@@ -89,18 +89,18 @@ uint16_t CMessageBase::strlen(const char *pString)
   return strLen;
 }
 
-bool CMessageBase::strcompare(const char *pS1, const char *pS2)
+bool BERGCloudMessageBase::strcompare(const char *s1, const char *s2)
 {
   uint16_t count = 0;
 
-  if ((pS1 == NULL) || (pS2==NULL))
+  if ((s1 == NULL) || (s2==NULL))
   {
     return false;
   }
 
-  while ((*pS1 != '\0') && (*pS2 != '\0'))
+  while ((*s1 != '\0') && (*s2 != '\0'))
   {
-    if (*pS1++ != *pS2++)
+    if (*s1++ != *s2++)
     {
         return false;
     }
@@ -120,7 +120,7 @@ bool CMessageBase::strcompare(const char *pS1, const char *pS2)
     Pack methods
 */
 
-bool CMessageBase::pack(uint8_t n)
+bool BERGCloudMessageBase::pack(uint8_t n)
 {
   if (!available(sizeof(n) + 1))
   {
@@ -133,7 +133,7 @@ bool CMessageBase::pack(uint8_t n)
   return true;
 }
 
-bool CMessageBase::pack(uint16_t n)
+bool BERGCloudMessageBase::pack(uint16_t n)
 {
   if (!available(sizeof(n) + 1))
   {
@@ -147,7 +147,7 @@ bool CMessageBase::pack(uint16_t n)
   return true;
 }
 
-bool CMessageBase::pack(uint32_t n)
+bool BERGCloudMessageBase::pack(uint32_t n)
 {
   if (!available(sizeof(n) + 1))
   {
@@ -163,7 +163,7 @@ bool CMessageBase::pack(uint32_t n)
   return true;
 }
 
-bool CMessageBase::pack(int8_t n)
+bool BERGCloudMessageBase::pack(int8_t n)
 {
   if (!available(sizeof(n) + 1))
   {
@@ -176,7 +176,7 @@ bool CMessageBase::pack(int8_t n)
   return true;
 }
 
-bool CMessageBase::pack(int16_t n)
+bool BERGCloudMessageBase::pack(int16_t n)
 {
   if (!available(sizeof(n) + 1))
   {
@@ -190,7 +190,7 @@ bool CMessageBase::pack(int16_t n)
   return true;
 }
 
-bool CMessageBase::pack(int32_t n)
+bool BERGCloudMessageBase::pack(int32_t n)
 {
   if (!available(sizeof(n) + 1))
   {
@@ -206,7 +206,7 @@ bool CMessageBase::pack(int32_t n)
   return true;
 }
 
-bool CMessageBase::pack(float n)
+bool BERGCloudMessageBase::pack(float n)
 {
   uint32_t data;
 
@@ -227,7 +227,7 @@ bool CMessageBase::pack(float n)
   return true;
 }
 
-bool CMessageBase::pack(bool n)
+bool BERGCloudMessageBase::pack(bool n)
 {
   /*
       Note that Arduino redefines 'true' and 'false' in Arduino.h.
@@ -246,7 +246,7 @@ bool CMessageBase::pack(bool n)
   return true;
 }
 
-bool CMessageBase::pack_nil(void)
+bool BERGCloudMessageBase::pack_nil(void)
 {
   if (!available(1))
   {
@@ -258,7 +258,7 @@ bool CMessageBase::pack_nil(void)
   return true;
 }
 
-bool CMessageBase::pack_array(uint16_t items)
+bool BERGCloudMessageBase::pack_array(uint16_t items)
 {
   if (items <= _MAX_FIXARRAY)
   {
@@ -288,7 +288,7 @@ bool CMessageBase::pack_array(uint16_t items)
   return true;
 }
 
-bool CMessageBase::pack_map(uint16_t items)
+bool BERGCloudMessageBase::pack_map(uint16_t items)
 {
   if (items <= _MAX_FIXMAP)
   {
@@ -318,7 +318,7 @@ bool CMessageBase::pack_map(uint16_t items)
   return true;
 }
 
-bool CMessageBase::pack(uint8_t *pData, uint16_t sizeInBytes)
+bool BERGCloudMessageBase::pack(uint8_t *data, uint16_t sizeInBytes)
 {
   /* Pack data */
   if (!pack_raw_header(sizeInBytes))
@@ -326,24 +326,24 @@ bool CMessageBase::pack(uint8_t *pData, uint16_t sizeInBytes)
     return false;
   }
 
-  return pack_raw_data(pData, sizeInBytes);
+  return pack_raw_data(data, sizeInBytes);
 }
 
-bool CMessageBase::pack(const char *pString)
+bool BERGCloudMessageBase::pack(const char *string)
 {
   /* Pack a null-terminated C string */
   uint16_t strLen;
 
-  strLen = CMessageBase::strlen(pString);
+  strLen = BERGCloudMessageBase::strlen(string);
 
-  return pack((uint8_t *)pString, strLen);
+  return pack((uint8_t *)string, strLen);
 }
 
 /* Separate header and data methods are provided for raw data*/
 /* so that Arduino strings may be packed without having to create */
 /* a temporary buffer first. */
 
-bool CMessageBase::pack_raw_header(uint16_t sizeInBytes)
+bool BERGCloudMessageBase::pack_raw_header(uint16_t sizeInBytes)
 {
   if (sizeInBytes <= _MAX_FIXRAW)
   {
@@ -373,12 +373,12 @@ bool CMessageBase::pack_raw_header(uint16_t sizeInBytes)
   return true;
 }
 
-bool CMessageBase::pack_raw_data(uint8_t *pData, uint16_t sizeInBytes)
+bool BERGCloudMessageBase::pack_raw_data(uint8_t *data, uint16_t sizeInBytes)
 {
   /* Add data */
   while (sizeInBytes-- > 0)
   {
-    add(*pData++);
+    add(*data++);
   }
 
   return true;
@@ -388,21 +388,13 @@ bool CMessageBase::pack_raw_data(uint8_t *pData, uint16_t sizeInBytes)
     Unpack methods
 */
 
-bool CMessageBase::unpack_peek(uint8_t& messagePackType)
+bool BERGCloudMessageBase::unpack_peek(uint8_t& messagePackType)
 {
-  uint8_t type;
-
-  if (!peek(&type))
-  {
-    return false;
-  }
-
-  messagePackType = type;
-  return true;
+  return peek(&messagePackType);
 }
 
 #ifdef BERGCLOUD_LOG
-bool CMessageBase::unpack_peek(void)
+bool BERGCloudMessageBase::unpack_peek(void)
 {
   uint8_t type;
 
@@ -487,12 +479,12 @@ bool CMessageBase::unpack_peek(void)
   return false;
 }
 
-void CMessageBase::print(void)
+void BERGCloudMessageBase::print(void)
 {
   uint16_t last_read;
 
   /* Remember the current read position in the raw data */
-  last_read = m_read;
+  last_read = bytesRead;
 
   /* Start reading from the beginning of the data */
   restart();
@@ -504,10 +496,10 @@ void CMessageBase::print(void)
   }
 
   /* Return to the last position */
-  m_read = last_read;
+  bytesRead = last_read;
 }
 
-void CMessageBase::print_bytes(void)
+void BERGCloudMessageBase::print_bytes(void)
 {
   uint16_t size = used();
   uint8_t *data = ptr();
@@ -522,7 +514,7 @@ void CMessageBase::print_bytes(void)
 }
 #endif
 
-bool CMessageBase::getUnsignedInteger(uint32_t *pValue, uint8_t maxBytes)
+bool BERGCloudMessageBase::getUnsignedInteger(uint32_t *value, uint8_t maxBytes)
 {
   /* Try to decode the next messagePack item as an unsigned integer */
   /* of less than or equal to 'maxBytes' size in bytes. */
@@ -545,7 +537,7 @@ bool CMessageBase::getUnsignedInteger(uint32_t *pValue, uint8_t maxBytes)
   if (type <= _MP_FIXNUM_POS_MAX)
   {
     /* Read fix num value */
-    *pValue = read();
+    *value = read();
 
     /* Success */
     return true;
@@ -563,7 +555,7 @@ bool CMessageBase::getUnsignedInteger(uint32_t *pValue, uint8_t maxBytes)
     read();
 
     /* Read 8-bit unsigned integer */
-    *pValue = read();
+    *value = read();
 
     /* Success */
     return true;
@@ -581,9 +573,9 @@ bool CMessageBase::getUnsignedInteger(uint32_t *pValue, uint8_t maxBytes)
     read();
 
     /* Read 16-bit unsigned integer */
-    *pValue = read();
-    *pValue = *pValue << 8;
-    *pValue |= read();
+    *value = read();
+    *value = *value << 8;
+    *value |= read();
 
     /* Success */
     return true;
@@ -601,13 +593,13 @@ bool CMessageBase::getUnsignedInteger(uint32_t *pValue, uint8_t maxBytes)
     read();
 
     /* Read 32-bit unsigned integer */
-    *pValue = read();
-    *pValue = *pValue << 8;
-    *pValue |= read();
-    *pValue = *pValue << 8;
-    *pValue |= read();
-    *pValue = *pValue << 8;
-    *pValue |= read();
+    *value = read();
+    *value = *value << 8;
+    *value |= read();
+    *value = *value << 8;
+    *value |= read();
+    *value = *value << 8;
+    *value |= read();
 
     /* Success */
     return true;
@@ -618,7 +610,7 @@ bool CMessageBase::getUnsignedInteger(uint32_t *pValue, uint8_t maxBytes)
   return false;
 }
 
-bool CMessageBase::getSignedInteger(int32_t *pValue, uint8_t maxBytes)
+bool BERGCloudMessageBase::getSignedInteger(int32_t *value, uint8_t maxBytes)
 {
   /* Try to decode the next messagePack item as an signed integer */
   /* of less than or equal to 'maxBytes' size in bytes. */
@@ -641,7 +633,7 @@ bool CMessageBase::getSignedInteger(int32_t *pValue, uint8_t maxBytes)
   if (type <= _MP_FIXNUM_POS_MAX)
   {
     /* Read fix num value */
-    *pValue = (int32_t)read();
+    *value = (int32_t)read();
 
     /* Success */
     return true;
@@ -650,7 +642,7 @@ bool CMessageBase::getSignedInteger(int32_t *pValue, uint8_t maxBytes)
   if (IN_RANGE(type, _MP_FIXNUM_NEG_MIN, _MP_FIXNUM_NEG_MAX))
   {
     /* Read fix num value */
-    *pValue = (int32_t)read();
+    *value = (int32_t)read();
 
     /* Success */
     return true;
@@ -668,7 +660,7 @@ bool CMessageBase::getSignedInteger(int32_t *pValue, uint8_t maxBytes)
     read();
 
     /* Read 8-bit signed integer */
-    *pValue = (int32_t)read();
+    *value = (int32_t)read();
     return true;
   }
 
@@ -684,9 +676,9 @@ bool CMessageBase::getSignedInteger(int32_t *pValue, uint8_t maxBytes)
     read();
 
     /* Read 16-bit signed integer */
-    *pValue = read();
-    *pValue = *pValue << 8;
-    *pValue |= read();
+    *value = read();
+    *value = *value << 8;
+    *value |= read();
 
     /* Success */
     return true;
@@ -704,13 +696,13 @@ bool CMessageBase::getSignedInteger(int32_t *pValue, uint8_t maxBytes)
     read();
 
     /* Read 32-bit signed integer */
-    *pValue = read();
-    *pValue = *pValue << 8;
-    *pValue |= read();
-    *pValue = *pValue << 8;
-    *pValue |= read();
-    *pValue = *pValue << 8;
-    *pValue |= read();
+    *value = read();
+    *value = *value << 8;
+    *value |= read();
+    *value = *value << 8;
+    *value |= read();
+    *value = *value << 8;
+    *value |= read();
 
     /* Success */
     return true;
@@ -721,7 +713,7 @@ bool CMessageBase::getSignedInteger(int32_t *pValue, uint8_t maxBytes)
   return false;
 }
 
-bool CMessageBase::unpack_skip(void)
+bool BERGCloudMessageBase::unpack_skip(void)
 {
   /* Skip next item */
 
@@ -815,7 +807,7 @@ bool CMessageBase::unpack_skip(void)
   return true;
 }
 
-bool CMessageBase::unpack(uint8_t& n)
+bool BERGCloudMessageBase::unpack(uint8_t& n)
 {
   uint32_t temp;
 
@@ -828,7 +820,7 @@ bool CMessageBase::unpack(uint8_t& n)
   return true;
 }
 
-bool CMessageBase::unpack(uint16_t& n)
+bool BERGCloudMessageBase::unpack(uint16_t& n)
 {
   uint32_t temp;
 
@@ -841,7 +833,7 @@ bool CMessageBase::unpack(uint16_t& n)
   return true;
 }
 
-bool CMessageBase::unpack(uint32_t& n)
+bool BERGCloudMessageBase::unpack(uint32_t& n)
 {
   uint32_t temp;
 
@@ -854,7 +846,7 @@ bool CMessageBase::unpack(uint32_t& n)
   return true;
 }
 
-bool CMessageBase::unpack(int8_t& n)
+bool BERGCloudMessageBase::unpack(int8_t& n)
 {
   int32_t temp;
 
@@ -867,7 +859,7 @@ bool CMessageBase::unpack(int8_t& n)
   return true;
 }
 
-bool CMessageBase::unpack(int16_t& n)
+bool BERGCloudMessageBase::unpack(int16_t& n)
 {
   int32_t temp;
 
@@ -880,7 +872,7 @@ bool CMessageBase::unpack(int16_t& n)
   return true;
 }
 
-bool CMessageBase::unpack(int32_t& n)
+bool BERGCloudMessageBase::unpack(int32_t& n)
 {
   int32_t temp;
 
@@ -893,7 +885,7 @@ bool CMessageBase::unpack(int32_t& n)
   return true;
 }
 
-bool CMessageBase::unpack(float& n)
+bool BERGCloudMessageBase::unpack(float& n)
 {
   /* Try to decode the next messagePack item as an 4-byte float */
   uint32_t data;
@@ -938,7 +930,7 @@ bool CMessageBase::unpack(float& n)
   return false;
 }
 
-bool CMessageBase::unpack(bool& n)
+bool BERGCloudMessageBase::unpack(bool& n)
 {
   /* Try to decode the next messagePack item as boolean */
   uint8_t type;
@@ -963,7 +955,7 @@ bool CMessageBase::unpack(bool& n)
   return false;
 }
 
-bool CMessageBase::unpack_nil(void)
+bool BERGCloudMessageBase::unpack_nil(void)
 {
   /* Try to decode the next messagePack item as nil */
   uint8_t type;
@@ -989,7 +981,7 @@ bool CMessageBase::unpack_nil(void)
   return false;
 }
 
-bool CMessageBase::unpack_array(uint16_t& items)
+bool BERGCloudMessageBase::unpack_array(uint16_t& items)
 {
   /* Try to decode the next messagePack item as array */
   uint8_t type;
@@ -1042,7 +1034,7 @@ bool CMessageBase::unpack_array(uint16_t& items)
   return false;
 }
 
-bool CMessageBase::unpack_map(uint16_t& items)
+bool BERGCloudMessageBase::unpack_map(uint16_t& items)
 {
   /* Try to decode the next messagePack item as array */
   uint8_t type;
@@ -1099,7 +1091,7 @@ bool CMessageBase::unpack_map(uint16_t& items)
 /* so that Arduino strings may be unpacked without having to create */
 /* a temporary buffer first. */
 
-bool CMessageBase::unpack_raw_header(uint16_t *sizeInBytes)
+bool BERGCloudMessageBase::unpack_raw_header(uint16_t *sizeInBytes)
 {
   uint8_t type;
 
@@ -1168,7 +1160,7 @@ bool CMessageBase::unpack_raw_header(uint16_t *sizeInBytes)
   return false;
 }
 
-bool CMessageBase::unpack_raw_data(uint8_t *pData, uint16_t packedSizeInBytes, uint16_t bufferSizeInBytes)
+bool BERGCloudMessageBase::unpack_raw_data(uint8_t *pData, uint16_t packedSizeInBytes, uint16_t bufferSizeInBytes)
 {
   uint8_t data;
 
@@ -1187,7 +1179,7 @@ bool CMessageBase::unpack_raw_data(uint8_t *pData, uint16_t packedSizeInBytes, u
   return true;
 }
 
-bool CMessageBase::unpack(char *pString, uint32_t maxSizeInBytes)
+bool BERGCloudMessageBase::unpack(char *pString, uint32_t maxSizeInBytes)
 {
   /* Try to decode a null-terminated C string */
   uint16_t sizeInBytes;
@@ -1215,7 +1207,7 @@ bool CMessageBase::unpack(char *pString, uint32_t maxSizeInBytes)
   return true;
 }
 
-bool CMessageBase::unpack(uint8_t *pData, uint32_t maxSizeInBytes, uint32_t *pSizeInBytes)
+bool BERGCloudMessageBase::unpack(uint8_t *pData, uint32_t maxSizeInBytes, uint32_t *pSizeInBytes)
 {
   /* Try to decode a block of raw data */
   uint16_t sizeInBytes;
@@ -1239,9 +1231,7 @@ bool CMessageBase::unpack(uint8_t *pData, uint32_t maxSizeInBytes, uint32_t *pSi
   return unpack_raw_data(pData, sizeInBytes, maxSizeInBytes);
 }
 
-#define MAX_MAP_KEY_STRING_LENGTH (16)
-
-bool CMessageBase::unpack_find(const char *key)
+bool BERGCloudMessageBase::unpack_find(const char *key)
 {
   /* Search for a string key in a map; in this simple */
   /* implementation maps cannot contain maps or arrays */
@@ -1262,7 +1252,7 @@ bool CMessageBase::unpack_find(const char *key)
   }
 
   /* Remember the current read position in the raw data */
-  last_read = m_read;
+  last_read = bytesRead;
 
   /* Start reading from the beginning of the data */
   restart();
@@ -1307,11 +1297,11 @@ bool CMessageBase::unpack_find(const char *key)
   }
 
   /* Not found; return to last position */
-  m_read = last_read;
+  bytesRead = last_read;
   return false;
 }
 
-bool CMessageBase::unpack_find(uint16_t i)
+bool BERGCloudMessageBase::unpack_find(uint16_t i)
 {
   /* Search for an index in an array; in this simple */
   /* implementation arrays cannot contain maps or arrays */
@@ -1321,7 +1311,7 @@ bool CMessageBase::unpack_find(uint16_t i)
   uint8_t type;
 
   /* Remember the current read position in the raw data */
-  last_read = m_read;
+  last_read = bytesRead;
 
   /* Start reading from the beginning of the data */
   restart();
@@ -1365,6 +1355,6 @@ bool CMessageBase::unpack_find(uint16_t i)
   }
 
   /* Not found; return to last position */
-  m_read = last_read;
+  bytesRead = last_read;
   return false;
 }

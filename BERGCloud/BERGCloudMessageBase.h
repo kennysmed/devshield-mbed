@@ -4,7 +4,7 @@ BERGCloud message pack/unpack
 
 Based on MessagePack http://msgpack.org/
 
-Copyright (c) 2013 BERG Ltd. http://bergcloud.com/
+Copyright (c) 2013 BERG Cloud Ltd. http://bergcloud.com/
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,12 +26,12 @@ THE SOFTWARE.
 
 */
 
-#ifndef MESSAGEBASE_H
-#define MESSAGEBASE_H
+#ifndef BERGCLOUDMESSAGEBASE_H
+#define BERGCLOUDMESSAGEBASE_H
 
 #include "BERGCloudConfig.h"
-#include "Buffer.h"
-#include "LogPrint.h"
+#include "BERGCloudMessageBuffer.h"
+#include "BERGCloudLogPrint.h"
 
 #define _LOG_PACK_ERROR_NO_SPACE    _LOG("Pack: Out of space.\r\n")
 #define _LOG_UNPACK_ERROR_TYPE      _LOG("Unpack: Can't convert to this variable type.\r\n")
@@ -39,11 +39,13 @@ THE SOFTWARE.
 
 #define IN_RANGE(value, min, max) ((value >= min) && (value <= max))
 
-class CMessageBase : public CBuffer
+#define MAX_MAP_KEY_STRING_LENGTH (16)
+
+class BERGCloudMessageBase : public BERGCloudMessageBuffer
 {
 public:
-  CMessageBase(void);
-  ~CMessageBase(void);
+  BERGCloudMessageBase(void);
+  ~BERGCloudMessageBase(void);
 
   /* Remove all items */
   void clear(void);
@@ -73,9 +75,9 @@ public:
   bool pack_map(uint16_t items);
 
   /* Pack an array of data */
-  bool pack(uint8_t *pData, uint16_t sizeInBytes);
+  bool pack(uint8_t *data, uint16_t sizeInBytes);
   /* Pack a null-terminated C string */
-  bool pack(const char *pString);
+  bool pack(const char *string);
 
   /*
    *  Unpack methods
@@ -126,20 +128,20 @@ public:
   bool unpack_find(uint16_t i);
 
   /* Unpack a null-terminated C string */
-  bool unpack(char *pString, uint32_t maxSizeInBytes);
+  bool unpack(char *string, uint32_t maxSizeInBytes);
   /* Unpack an array of data */
-  bool unpack(uint8_t *pData, uint32_t maxSizeInBytes, uint32_t *pSizeInBytes = NULL);
+  bool unpack(uint8_t *data, uint32_t maxSizeInBytes, uint32_t *sizeInBytes = NULL);
 
 protected:
   /* Internal methods */
-  uint16_t strlen(const char *pString);
-  bool strcompare(const char *pS1, const char *pS2);
+  uint16_t strlen(const char *string);
+  bool strcompare(const char *s1, const char *s2);
   bool pack_raw_header(uint16_t sizeInBytes);
-  bool pack_raw_data(uint8_t *pData, uint16_t sizeInBytes);
+  bool pack_raw_data(uint8_t *data, uint16_t sizeInBytes);
   bool unpack_raw_header(uint16_t *sizeInBytes);
-  bool unpack_raw_data(uint8_t *pData, uint16_t packedSizeInBytes, uint16_t bufferSizeInBytes);
-  bool getUnsignedInteger(uint32_t *pValue, uint8_t maxBytes);
-  bool getSignedInteger(int32_t *pValue, uint8_t maxBytes);
+  bool unpack_raw_data(uint8_t *data, uint16_t packedSizeInBytes, uint16_t bufferSizeInBytes);
+  bool getUnsignedInteger(uint32_t *value, uint8_t maxBytes);
+  bool getSignedInteger(int32_t *value, uint8_t maxBytes);
 };
 
-#endif // #ifndef MESSAGEBASE_H
+#endif // #ifndef BERGCLOUDMESSAGEBASE_H

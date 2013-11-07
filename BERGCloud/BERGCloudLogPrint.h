@@ -1,8 +1,8 @@
 /*
 
-LogPrint.h
+Debug logging helpers
 
-Copyright (c) 2013 BERG Ltd. http://bergcloud.com/
+Copyright (c) 2013 BERG Cloud Ltd. http://bergcloud.com/
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,8 @@ THE SOFTWARE.
 
 */
 
-#ifndef LOGPRINT_H
-#define LOGPRINT_H
+#ifndef BERGCLOUDLOGPRINT_H
+#define BERGCLOUDLOGPRINT_H
 
 #ifdef BERGCLOUD_LOG
 #ifdef ARDUINO
@@ -47,4 +47,4 @@ THE SOFTWARE.
 #define _LOG(x)
 #endif // #ifdef BERGCLOUD_LOG
 
-#endif // #ifndef LOGPRINT_H
+#endif // #ifndef BERGCLOUDLOGPRINT_H

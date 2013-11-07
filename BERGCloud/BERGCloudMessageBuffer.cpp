@@ -1,8 +1,8 @@
 /*
 
-Simple buffer
+Simple message buffer
 
-Copyright (c) 2013 BERG Ltd. http://bergcloud.com/
+Copyright (c) 2013 BERG Cloud Ltd. http://bergcloud.com/
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,94 +24,94 @@ THE SOFTWARE.
 
 */
 
-#include "Buffer.h"
+#include "BERGCloudMessageBuffer.h"
 
-CBuffer::CBuffer(void)
+BERGCloudMessageBuffer::BERGCloudMessageBuffer(void)
 {
   clear();
 }
 
-void CBuffer::clear(void)
+void BERGCloudMessageBuffer::clear(void)
 {
-  m_written = 0; /* Number of bytes written */
-  m_read = 0;    /* Number of bytes read */
+  bytesWritten = 0; /* Number of bytes written */
+  bytesRead = 0;    /* Number of bytes read */
 }
 
-void CBuffer::restart(void)
+void BERGCloudMessageBuffer::restart(void)
 {
   /* Restart reading from the beginning */
-  m_read = 0;
+  bytesRead = 0;
 }
 
-uint16_t CBuffer::size(void)
+uint16_t BERGCloudMessageBuffer::size(void)
 {
   /* Get total size of the buffer */
   return BUFFER_SIZE_BYTES;
 }
 
-uint16_t CBuffer::used(void)
+uint16_t BERGCloudMessageBuffer::used(void)
 {
   /* Get mumber of bytes used in the buffer */
-  return m_written;
+  return bytesWritten;
 }
 
-void CBuffer::used(uint16_t used)
+void BERGCloudMessageBuffer::used(uint16_t used)
 {
   /* Set number of bytes used in the buffer */
-  m_written = used;
+  bytesWritten = used;
 }
 
-uint16_t CBuffer::available(void)
+uint16_t BERGCloudMessageBuffer::available(void)
 {
   /* Get space available in the buffer */
-  return BUFFER_SIZE_BYTES - m_written;
+  return BUFFER_SIZE_BYTES - bytesWritten;
 }
 
-bool CBuffer::available(uint16_t required)
+bool BERGCloudMessageBuffer::available(uint16_t required)
 {
   /* Test if space is available for the number of bytes required */
-  return (BUFFER_SIZE_BYTES - m_written) >= required;
+  return (BUFFER_SIZE_BYTES - bytesWritten) >= required;
 }
 
-void CBuffer::add(uint8_t data)
+void BERGCloudMessageBuffer::add(uint8_t data)
 {
   /* Write a byte to the buffer; no checks */
-    m_data[m_written++] = data;
+    buffer[bytesWritten++] = data;
 }
 
-bool CBuffer::peek(uint8_t *data)
+bool BERGCloudMessageBuffer::peek(uint8_t *data)
 {
   /* Peek at the next byte in the buffer */
-  if (m_read >= m_written)
+  if (bytesRead >= bytesWritten)
   {
     /* No more data */
     return false;
   }
 
   
-  *data = m_data[m_read]; /* No increment */
+  *data = buffer[bytesRead]; /* No increment */
   return true;
 }
 
-uint8_t CBuffer::read(void)
+uint8_t BERGCloudMessageBuffer::read(void)
 {
   /* Read the next byte from the buffer; no checks */
-  return m_data[m_read++];
+  return buffer[bytesRead++];
 }
 
-uint16_t CBuffer::remaining(void)
+uint16_t BERGCloudMessageBuffer::remaining(void)
 {
   /* Returns the number of bytes that have been written but not read */
-  return m_written - m_read;
+  return bytesWritten - bytesRead;
 }
 
-bool CBuffer::remaining(uint16_t required)
+bool BERGCloudMessageBuffer::remaining(uint16_t required)
 {
   /* Test if data is remaining for the number of bytes required */
-  return (m_written - m_read) >= required;
+  return (bytesWritten - bytesRead) >= required;
 }
 
-uint8_t *CBuffer::ptr(void)
+uint8_t *BERGCloudMessageBuffer::ptr(void)
 {
-  return m_data;
+  return buffer;
 }

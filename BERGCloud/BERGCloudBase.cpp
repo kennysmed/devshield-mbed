@@ -2,7 +2,7 @@
 
 BERGCloud library common API
 
-Copyright (c) 2013 BERG Ltd. http://bergcloud.com/
+Copyright (c) 2013 BERG Cloud Ltd. http://bergcloud.com/
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,9 +37,9 @@ THE SOFTWARE.
 
 #define CONNECT_POLL_RATE_MS 250
 
-uint8_t CBERGCloudBase::nullProductID[BC_PRODUCT_KEY_SIZE_BYTES] = {0};
+uint8_t BERGCloudBase::nullProductKey[BC_PRODUCT_KEY_SIZE_BYTES] = {0};
 
-bool CBERGCloudBase::transaction(_BC_SPI_TRANSACTION *pTr)
+bool BERGCloudBase::transaction(_BC_SPI_TRANSACTION *tr)
 {
   uint16_t i, j;
   uint8_t rxByte;
@@ -52,7 +52,7 @@ bool CBERGCloudBase::transaction(_BC_SPI_TRANSACTION *pTr)
   uint8_t footer[SPI_FOOTER_SIZE_BYTES];
 
   /* Check synchronisation */
-  if (!m_synced)
+  if (!synced)
   {
     timerReset();
 
@@ -64,12 +64,12 @@ bool CBERGCloudBase::transaction(_BC_SPI_TRANSACTION *pTr)
 
     if (timeout)
     {
-      _LOG("Timeout, sync (CBERGCloudBase::transaction)\r\n");
+      _LOG("Timeout, sync (BERGCloudBase::transaction)\r\n");
       return false;
     }
 
     /* Resynchronisation successful */
-    m_synced = true;
+    synced = true;
   }
 
   /* Calculate total data size */
@@ -77,14 +77,14 @@ bool CBERGCloudBase::transaction(_BC_SPI_TRANSACTION *pTr)
 
   for (i=0; i<_TX_GROUPS; i++)
   {
-    dataSize += pTr->tx[i].dataSize;
+    dataSize += tr->tx[i].dataSize;
   }
 
   /* Initialise CRC */
   calcCRC = 0xffff;
 
   /* Create header */
-  header[0] = pTr->command;
+  header[0] = tr->command;
   header[1] = 0x00; /* Reserved */
   header[2] = 0x00; /* Reserved */
   header[3] = dataSize;
@@ -98,14 +98,14 @@ bool CBERGCloudBase::transaction(_BC_SPI_TRANSACTION *pTr)
 
     if (rxByte == SPI_PROTOCOL_RESET)
     {
-      _LOG("Reset, send header (CBERGCloudBase::transaction)\r\n");
+      _LOG("Reset, send header (BERGCloudBase::transaction)\r\n");
       return false;
     }
 
     if (rxByte != SPI_PROTOCOL_PAD)
     {
-      _LOG("SyncErr, send header (CBERGCloudBase::transaction)\r\n");
-      m_synced = false;
+      _LOG("SyncErr, send header (BERGCloudBase::transaction)\r\n");
+      synced = false;
       return false;
     }
   }
@@ -113,21 +113,21 @@ bool CBERGCloudBase::transaction(_BC_SPI_TRANSACTION *pTr)
   /* Send data groups */
   for (i=0; i<_TX_GROUPS; i++)
   {
-    for (j=0; j<pTr->tx[i].dataSize; j++)
+    for (j=0; j<tr->tx[i].dataSize; j++)
     {
-      calcCRC = Crc16(pTr->tx[i].pBuffer[j], calcCRC);
-      rxByte = SPITransaction(pTr->tx[i].pBuffer[j], false);
+      calcCRC = Crc16(tr->tx[i].buffer[j], calcCRC);
+      rxByte = SPITransaction(tr->tx[i].buffer[j], false);
 
       if (rxByte == SPI_PROTOCOL_RESET)
       {
-        _LOG("Reset, send data (CBERGCloudBase::transaction)\r\n");
+        _LOG("Reset, send data (BERGCloudBase::transaction)\r\n");
         return false;
       }
 
       if (rxByte != SPI_PROTOCOL_PAD)
       {
-        _LOG("SyncErr, send data (CBERGCloudBase::transaction)\r\n");
-        m_synced = false;
+        _LOG("SyncErr, send data (BERGCloudBase::transaction)\r\n");
+        synced = false;
         return false;
       }
     }
@@ -144,14 +144,14 @@ bool CBERGCloudBase::transaction(_BC_SPI_TRANSACTION *pTr)
 
     if (rxByte == SPI_PROTOCOL_RESET)
     {
-      _LOG("Reset, send footer (CBERGCloudBase::transaction)\r\n");
+      _LOG("Reset, send footer (BERGCloudBase::transaction)\r\n");
       return false;
     }
 
     if (rxByte != SPI_PROTOCOL_PAD)
     {
-      _LOG("SyncErr, send footer (CBERGCloudBase::transaction)\r\n");
-      m_synced = false;
+      _LOG("SyncErr, send footer (BERGCloudBase::transaction)\r\n");
+      synced = false;
       return false;
     }
   }
@@ -164,7 +164,7 @@ bool CBERGCloudBase::transaction(_BC_SPI_TRANSACTION *pTr)
 
     if (rxByte == SPI_PROTOCOL_RESET)
     {
-      _LOG("Reset, poll (CBERGCloudBase::transaction)\r\n");
+      _LOG("Reset, poll (BERGCloudBase::transaction)\r\n");
       return false;
     }
 
@@ -180,8 +180,8 @@ bool CBERGCloudBase::transaction(_BC_SPI_TRANSACTION *pTr)
 
   if (timeout)
   {
-    _LOG("Timeout, poll (CBERGCloudBase::transaction)\r\n");
-    m_synced = false;
+    _LOG("Timeout, poll (BERGCloudBase::transaction)\r\n");
+    synced = false;
     return false;
   }
 
@@ -204,13 +204,13 @@ bool CBERGCloudBase::transaction(_BC_SPI_TRANSACTION *pTr)
   /* Read data groups */
   for (i=0; i<_RX_GROUPS; i++)
   {
-    groupSize = pTr->rx[i].bufferSize;
+    groupSize = tr->rx[i].bufferSize;
     j = 0; /* Start of the group buffer */
 
     while((dataSize > 0) && (groupSize > 0))
     {
-      pTr->rx[i].pBuffer[j] = SPITransaction(SPI_PROTOCOL_PAD, false);
-      calcCRC = Crc16(pTr->rx[i].pBuffer[j], calcCRC);
+      tr->rx[i].buffer[j] = SPITransaction(SPI_PROTOCOL_PAD, false);
+      calcCRC = Crc16(tr->rx[i].buffer[j], calcCRC);
 
       /* Next */
       j++;
@@ -220,18 +220,18 @@ bool CBERGCloudBase::transaction(_BC_SPI_TRANSACTION *pTr)
       groupSize--;
     }
 
-    if (pTr->rx[i].pDataSize != NULL)
+    if (tr->rx[i].dataSize != NULL)
     {
       /* Return the number of bytes used in this buffer */
-      *pTr->rx[i].pDataSize = pTr->rx[i].bufferSize - groupSize;
+      *tr->rx[i].dataSize = tr->rx[i].bufferSize - groupSize;
     }
   }
 
   if (dataSize > 0)
   {
     /* Too much data sent */
-    _LOG("SizeErr, allocate rx groups (2) (CBERGCloudBase::transaction)\r\n");
-    m_synced = false;
+    _LOG("SizeErr, read data (BERGCloudBase::transaction)\r\n");
+    synced = false;
     return false;
   }
 
@@ -244,23 +244,23 @@ bool CBERGCloudBase::transaction(_BC_SPI_TRANSACTION *pTr)
   if (calcCRC != dataCRC)
   {
     /* Invalid CRC */
-    _LOG("CRCErr, read data (CBERGCloudBase::transaction)\r\n");
-    m_synced = false;
+    _LOG("CRCErr, read data (BERGCloudBase::transaction)\r\n");
+    synced = false;
     return false;
   }
 
   /* Get reponse code */
-  m_lastResponse = header[0];
+  lastResponse = header[0];
 
-  return (m_lastResponse == SPI_RSP_SUCCESS);
+  return (lastResponse == SPI_RSP_SUCCESS);
 }
 
-void CBERGCloudBase::initTransaction(_BC_SPI_TRANSACTION *pTr)
+void BERGCloudBase::initTransaction(_BC_SPI_TRANSACTION *tr)
 {
-  memset(pTr, 0x00, sizeof(_BC_SPI_TRANSACTION));
+  memset(tr, 0x00, sizeof(_BC_SPI_TRANSACTION));
 }
 
-bool CBERGCloudBase::pollForCommand(uint8_t *pCommandBuffer, uint16_t commandBufferSize, uint16_t& commandSize, uint8_t& commandID)
+bool BERGCloudBase::pollForCommand(uint8_t *commandBuffer, uint16_t commandBufferSize, uint16_t& commandSize, uint8_t& commandID)
 {
   /* Returns TRUE if a valid command has been received */
 
@@ -272,13 +272,13 @@ bool CBERGCloudBase::pollForCommand(uint8_t *pCommandBuffer, uint16_t commandBuf
 
   tr.command = SPI_CMD_POLL_FOR_COMMAND;
 
-  tr.rx[0].pBuffer = cmdID;
+  tr.rx[0].buffer = cmdID;
   tr.rx[0].bufferSize = sizeof(cmdID);
-  tr.rx[0].pDataSize = &cmdIDSize;
+  tr.rx[0].dataSize = &cmdIDSize;
 
-  tr.rx[1].pBuffer = pCommandBuffer;
+  tr.rx[1].buffer = commandBuffer;
   tr.rx[1].bufferSize = commandBufferSize;
-  tr.rx[1].pDataSize = &commandSize;
+  tr.rx[1].dataSize = &commandSize;
 
   if (transaction(&tr))
   {
@@ -291,7 +291,8 @@ bool CBERGCloudBase::pollForCommand(uint8_t *pCommandBuffer, uint16_t commandBuf
   return false;
 }
 
-bool CBERGCloudBase::pollForCommand(CBuffer& buffer, uint8_t& commandID)
+#ifdef BERGCLOUD_PACK_UNPACK
+bool BERGCloudBase::pollForCommand(BERGCloudMessageBuffer& buffer, uint8_t& commandID)
 {
   /* Returns TRUE if a valid command has been received */
 
@@ -305,13 +306,13 @@ bool CBERGCloudBase::pollForCommand(CBuffer& buffer, uint8_t& commandID)
 
   tr.command = SPI_CMD_POLL_FOR_COMMAND;
 
-  tr.rx[0].pBuffer = cmdID;
+  tr.rx[0].buffer = cmdID;
   tr.rx[0].bufferSize = sizeof(cmdID);
-  tr.rx[0].pDataSize = &cmdIDSize;
+  tr.rx[0].dataSize = &cmdIDSize;
 
-  tr.rx[1].pBuffer = buffer.ptr();
+  tr.rx[1].buffer = buffer.ptr();
   tr.rx[1].bufferSize = buffer.size();
-  tr.rx[1].pDataSize = &dataSize;
+  tr.rx[1].dataSize = &dataSize;
 
   if (transaction(&tr))
   {
@@ -324,8 +325,9 @@ bool CBERGCloudBase::pollForCommand(CBuffer& buffer, uint8_t& commandID)
   buffer.used(0);
   return false;
 }
+#endif
 
-bool CBERGCloudBase::_sendEvent(uint8_t eventCode, uint8_t *pEventBuffer, uint16_t eventSize, uint8_t command)
+bool BERGCloudBase::_sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t eventSize, uint8_t command)
 {
   /* Returns TRUE if the event is sent successfully */
 
@@ -343,20 +345,21 @@ bool CBERGCloudBase::_sendEvent(uint8_t eventCode, uint8_t *pEventBuffer, uint16
   initTransaction(&tr);
 
   tr.command = command;
-  tr.tx[0].pBuffer = (uint8_t *)header;
+  tr.tx[0].buffer = (uint8_t *)header;
   tr.tx[0].dataSize = sizeof(header);
-  tr.tx[1].pBuffer = pEventBuffer;
+  tr.tx[1].buffer = eventBuffer;
   tr.tx[1].dataSize = (uint8_t)eventSize;
 
   return transaction(&tr);
 }
 
-bool CBERGCloudBase::sendEvent(uint8_t eventCode, uint8_t *pEventBuffer, uint16_t eventSize)
+bool BERGCloudBase::sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t eventSize)
 {
-  return _sendEvent(eventCode, pEventBuffer, eventSize, SPI_CMD_SEND_EVENT_RAW);
+  return _sendEvent(eventCode, eventBuffer, eventSize, SPI_CMD_SEND_EVENT_RAW);
 }
 
-bool CBERGCloudBase::sendEvent(uint8_t eventCode, CBuffer& buffer)
+#ifdef BERGCLOUD_PACK_UNPACK
+bool BERGCloudBase::sendEvent(uint8_t eventCode, BERGCloudMessageBuffer& buffer)
 {
   bool result;
 
@@ -365,36 +368,37 @@ bool CBERGCloudBase::sendEvent(uint8_t eventCode, CBuffer& buffer)
   buffer.clear();
   return result;
 }
+#endif
 
-bool CBERGCloudBase::getConnectionState(uint8_t& state)
+bool BERGCloudBase::getConnectionState(uint8_t& state)
 {
   _BC_SPI_TRANSACTION tr;
 
   initTransaction(&tr);
 
   tr.command = SPI_CMD_GET_CONNECT_STATE;
-  tr.rx[0].pBuffer = &state;
+  tr.rx[0].buffer = &state;
   tr.rx[0].bufferSize = sizeof(state);
 
   return transaction(&tr);
 }
 
-bool CBERGCloudBase::getSignalQuality(int8_t& rssi, uint8_t& lqi)
+bool BERGCloudBase::getSignalQuality(int8_t& rssi, uint8_t& lqi)
 {
   _BC_SPI_TRANSACTION tr;
 
   initTransaction(&tr);
 
   tr.command = SPI_CMD_GET_SIGNAL_QUALITY;
-  tr.rx[0].pBuffer = (uint8_t *)&rssi;
+  tr.rx[0].buffer = (uint8_t *)&rssi;
   tr.rx[0].bufferSize = sizeof(rssi);
-  tr.rx[1].pBuffer = &lqi;
+  tr.rx[1].buffer = &lqi;
   tr.rx[1].bufferSize = sizeof(lqi);
 
   return transaction(&tr);
 }
 
-bool CBERGCloudBase::connect(const uint8_t (&productID)[BC_PRODUCT_KEY_SIZE_BYTES], uint32_t version, bool waitForConnected)
+bool BERGCloudBase::connect(const uint8_t (&productKey)[BC_PRODUCT_KEY_SIZE_BYTES], uint32_t version, bool waitForConnected)
 {
   _BC_SPI_TRANSACTION tr;
   uint8_t version_be[sizeof(version)];
@@ -410,9 +414,9 @@ bool CBERGCloudBase::connect(const uint8_t (&productID)[BC_PRODUCT_KEY_SIZE_BYTE
   version_be[3] = version;
 
   tr.command = SPI_CMD_SEND_PRODUCT_ANNOUNCE;
-  tr.tx[0].pBuffer = (uint8_t *)productID;
-  tr.tx[0].dataSize = sizeof(productID);
-  tr.tx[1].pBuffer = version_be;
+  tr.tx[0].buffer = (uint8_t *)productKey;
+  tr.tx[0].dataSize = sizeof(productKey);
+  tr.tx[1].buffer = version_be;
   tr.tx[1].dataSize = sizeof(version_be);
 
   if (!transaction(&tr))
@@ -457,85 +461,85 @@ bool CBERGCloudBase::connect(const uint8_t (&productID)[BC_PRODUCT_KEY_SIZE_BYTE
   return true;
 }
 
-bool CBERGCloudBase::getClaimingState(uint8_t& state)
+bool BERGCloudBase::getClaimingState(uint8_t& state)
 {
   _BC_SPI_TRANSACTION tr;
 
   initTransaction(&tr);
 
   tr.command = SPI_CMD_GET_CLAIM_STATE;
-  tr.rx[0].pBuffer = &state;
+  tr.rx[0].buffer = &state;
   tr.rx[0].bufferSize = sizeof(state);
 
   return transaction(&tr);
 }
 
-bool CBERGCloudBase::getClaimcode(char (&claimcode)[BC_CLAIMCODE_SIZE_BYTES])
+bool BERGCloudBase::getClaimcode(char (&claimcode)[BC_CLAIMCODE_SIZE_BYTES])
 {
   _BC_SPI_TRANSACTION tr;
 
   initTransaction(&tr);
 
   tr.command = SPI_CMD_GET_CLAIMCODE;
-  tr.rx[0].pBuffer = (uint8_t *)claimcode;
+  tr.rx[0].buffer = (uint8_t *)claimcode;
   tr.rx[0].bufferSize = sizeof(claimcode);
 
   return transaction(&tr);
 }
 
-bool CBERGCloudBase::getEUI64(uint8_t type, uint8_t (&eui64)[BC_EUI64_SIZE_BYTES])
+bool BERGCloudBase::getEUI64(uint8_t type, uint8_t (&eui64)[BC_EUI64_SIZE_BYTES])
 {
   _BC_SPI_TRANSACTION tr;
 
   initTransaction(&tr);
 
   tr.command = SPI_CMD_GET_EUI64;
-  tr.tx[0].pBuffer = &type;
+  tr.tx[0].buffer = &type;
   tr.tx[0].dataSize = sizeof(uint8_t);
-  tr.rx[0].pBuffer = eui64;
+  tr.rx[0].buffer = eui64;
   tr.rx[0].bufferSize = sizeof(eui64);
 
   return transaction(&tr);
 }
 
-bool CBERGCloudBase::getDeviceAddress(uint8_t (&address)[BC_ADDRESS_SIZE_BYTES])
+bool BERGCloudBase::getDeviceAddress(uint8_t (&address)[BC_ADDRESS_SIZE_BYTES])
 {
   _BC_SPI_TRANSACTION tr;
 
   initTransaction(&tr);
 
   tr.command = SPI_CMD_GET_ADDRESS;
-  tr.rx[0].pBuffer = address;
+  tr.rx[0].buffer = address;
   tr.rx[0].bufferSize = sizeof(address);
 
   return transaction(&tr);
 }
 
-bool CBERGCloudBase::setDisplayStyle(uint8_t style)
+bool BERGCloudBase::setDisplayStyle(uint8_t style)
 {
   _BC_SPI_TRANSACTION tr;
 
   initTransaction(&tr);
 
   tr.command = SPI_CMD_SET_DISPLAY_STYLE;
-  tr.tx[0].pBuffer = &style;
+  tr.tx[0].buffer = &style;
   tr.tx[0].dataSize = sizeof(style);
 
   return transaction(&tr);
 }
 
-bool CBERGCloudBase::clearDisplay(void)
+bool BERGCloudBase::clearDisplay(void)
 {
   return setDisplayStyle(BC_DISPLAY_CLEAR);
 }
 
-bool CBERGCloudBase::print(const char *pString)
+bool BERGCloudBase::print(const char *text)
 {
   _BC_SPI_TRANSACTION tr;
   uint8_t strLen = 0;
-  const char *pTmp = pString;
+  const char *tmp = text;
 
-  if (pString == NULL)
+  if (text == NULL)
   {
     return false;
   }
@@ -543,19 +547,19 @@ bool CBERGCloudBase::print(const char *pString)
   initTransaction(&tr);
 
   /* Get string length excluding terminator */
-  while ((*pTmp++ != '\0') && (strLen < UINT8_MAX))
+  while ((*tmp++ != '\0') && (strLen < UINT8_MAX))
   {
     strLen++;
   }
 
   tr.command = SPI_CMD_DISPLAY_PRINT;
-  tr.tx[0].pBuffer = (uint8_t *)pString;
+  tr.tx[0].buffer = (uint8_t *)text;
   tr.tx[0].dataSize = strLen;
 
   return transaction(&tr);
 }
 
-uint16_t CBERGCloudBase::Crc16(uint8_t data, uint16_t crc)
+uint16_t BERGCloudBase::Crc16(uint8_t data, uint16_t crc)
 {
   /* From Ember's code */
   crc = (crc >> 8) | (crc << 8);
@@ -569,7 +573,7 @@ uint16_t CBERGCloudBase::Crc16(uint8_t data, uint16_t crc)
   return crc;
 }
 
-uint8_t CBERGCloudBase::SPITransaction(uint8_t dataOut, bool finalCS)
+uint8_t BERGCloudBase::SPITransaction(uint8_t dataOut, bool finalCS)
 {
   uint8_t dataIn = 0;
 
@@ -578,12 +582,12 @@ uint8_t CBERGCloudBase::SPITransaction(uint8_t dataOut, bool finalCS)
   return dataIn;
 }
 
-void CBERGCloudBase::begin(void)
+void BERGCloudBase::begin(void)
 {
-  m_synced = false;
-  m_lastResponse = SPI_RSP_SUCCESS;
+  synced = false;
+  lastResponse = SPI_RSP_SUCCESS;
 }
 
-void CBERGCloudBase::end(void)
+void BERGCloudBase::end(void)
 {
 }

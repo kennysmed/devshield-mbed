@@ -1,8 +1,8 @@
 /*
 
-Simple buffer
+Simple message buffer
 
-Copyright (c) 2013 BERG Ltd. http://bergcloud.com/
+Copyright (c) 2013 BERG Cloud Ltd. http://bergcloud.com/
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,8 @@ THE SOFTWARE.
 
 */
 
-#ifndef BUFFER_H
-#define BUFFER_H
+#ifndef BERGCLOUDMESSAGEBUFFER_H
+#define BERGCLOUDMESSAGEBUFFER_H
 
 #define __STDC_LIMIT_MACROS /* Include C99 stdint defines in C++ code */
 #include <stdint.h>
@@ -35,10 +35,10 @@ THE SOFTWARE.
 #define BUFFER_SIZE_BYTES 64
 #endif
 
-class CBuffer
+class BERGCloudMessageBuffer
 {
 public:
-  CBuffer();
+  BERGCloudMessageBuffer();
   uint16_t size(void);
   uint8_t *ptr(void);
   void clear(void);
@@ -58,9 +58,9 @@ public:
   void restart(void);
 
 protected:
-  uint8_t m_data[BUFFER_SIZE_BYTES];
-  uint16_t m_written;
-  uint16_t m_read;
+  uint8_t buffer[BUFFER_SIZE_BYTES];
+  uint16_t bytesWritten;
+  uint16_t bytesRead;
 };
 
-#endif // #ifndef BUFFER_H
+#endif // #ifndef BERGCLOUDMESSAGEBUFFER_H

@@ -2,7 +2,7 @@
 
 BERGCloud library common API
 
-Copyright (c) 2013 BERG Ltd. http://bergcloud.com/
+Copyright (c) 2013 BERG Cloud Ltd. http://bergcloud.com/
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +30,11 @@ THE SOFTWARE.
 
 #include "BERGCloudConfig.h"
 #include "BERGCloudConst.h"
-#include "Buffer.h"
-#include "LogPrint.h"
+#include "BERGCloudLogPrint.h"
+
+#ifdef BERGCLOUD_PACK_UNPACK
+#include "BERGCloudMessageBuffer.h"
+#endif
 
 #define BERGCLOUD_LIB_VERSION (0x0100)
 
@@ -39,14 +42,14 @@ THE SOFTWARE.
 #define _RX_GROUPS (2)
 
 typedef struct {
-  uint8_t *pBuffer;
+  uint8_t *buffer;
   uint16_t dataSize;
 } _BC_TX_GROUP;
 
 typedef struct {
-  uint8_t *pBuffer;
+  uint8_t *buffer;
   uint16_t bufferSize;
-  uint16_t *pDataSize;
+  uint16_t *dataSize;
 } _BC_RX_GROUP;
 
 typedef struct {
@@ -55,21 +58,25 @@ typedef struct {
   _BC_RX_GROUP rx[_RX_GROUPS];
 } _BC_SPI_TRANSACTION;
 
-class CBERGCloudBase
+class BERGCloudBase
 {
 public:
   /* Check for a command */
-  bool pollForCommand(uint8_t *pCommandBuffer, uint16_t commandBufferSize, uint16_t& commandSize, uint8_t& commandID);
-  bool pollForCommand(CBuffer& buffer, uint8_t& commandID);
+  bool pollForCommand(uint8_t *commandBuffer, uint16_t commandBufferSize, uint16_t& commandSize, uint8_t& commandID);
+#ifdef BERGCLOUD_PACK_UNPACK
+  bool pollForCommand(BERGCloudMessageBuffer& buffer, uint8_t& commandID);
+#endif
   /* Send an event */
-  bool sendEvent(uint8_t eventCode, uint8_t *pEventBuffer, uint16_t eventSize);
-  bool sendEvent(uint8_t eventCode, CBuffer& buffer);
+  bool sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t eventSize);
+#ifdef BERGCLOUD_PACK_UNPACK
+  bool sendEvent(uint8_t eventCode, BERGCloudMessageBuffer& buffer);
+#endif
   /* Get the connection state */
   bool getConnectionState(uint8_t& state);
   /* Get the last-hop signal quality */
   bool getSignalQuality(int8_t& rssi, uint8_t& lqi);
   /* Connect */
-  bool connect(const uint8_t (&productID)[BC_PRODUCT_KEY_SIZE_BYTES] = nullProductID, uint32_t version = 0, bool waitForConnected = false);
+  bool connect(const uint8_t (&productKey)[BC_PRODUCT_KEY_SIZE_BYTES] = nullProductKey, uint32_t version = 0, bool waitForConnected = false);
   /* Check if the device has been claimed */
   bool getClaimingState(uint8_t& state);
   /* Get the current claimcode */
@@ -83,25 +90,25 @@ public:
   /* Clear the OLED display */
   bool clearDisplay(void);
   /* Print a line of text on the OLED display */
-  bool print(const char *pText);
+  bool print(const char *text);
 
   /* Internal methods */
 public:
-  uint8_t m_lastResponse;
-  static uint8_t nullProductID[16];
+  uint8_t lastResponse;
+  static uint8_t nullProductKey[BC_PRODUCT_KEY_SIZE_BYTES];
 protected:
   void begin(void);
   void end(void);
   uint16_t Crc16(uint8_t data, uint16_t crc);
-  virtual uint16_t SPITransaction(uint8_t *pDataOut, uint8_t *pDataIn, uint16_t dataSize, bool finalCS) = 0;
+  virtual uint16_t SPITransaction(uint8_t *dataOut, uint8_t *dataIn, uint16_t dataSize, bool finalCS) = 0;
   virtual void timerReset(void) = 0;
   virtual uint32_t timerRead_mS(void) = 0;
 private:
   uint8_t SPITransaction(uint8_t data, bool finalCS);
-  void initTransaction(_BC_SPI_TRANSACTION *pTr);
+  void initTransaction(_BC_SPI_TRANSACTION *tr);
   bool transaction(_BC_SPI_TRANSACTION *tr);
-  bool _sendEvent(uint8_t eventCode, uint8_t *pEventBuffer, uint16_t eventSize, uint8_t command);
-  bool m_synced;
+  bool _sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t eventSize, uint8_t command);
+  bool synced;
 };
 
 #endif // #ifndef BERGCLOUDBASE_H
