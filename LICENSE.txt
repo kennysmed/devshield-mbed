@@ -1,4 +1,4 @@
-BERGCloud Arduino client library
+BERG Cloud mbed client library
 
 Copyright (c) 2013 BERG Cloud Ltd. http://bergcloud.com/
 
