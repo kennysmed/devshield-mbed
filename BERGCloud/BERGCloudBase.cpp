@@ -398,26 +398,32 @@ bool BERGCloudBase::getSignalQuality(int8_t& rssi, uint8_t& lqi)
   return transaction(&tr);
 }
 
-bool BERGCloudBase::connect(const uint8_t (&productKey)[BC_PRODUCT_KEY_SIZE_BYTES], uint32_t version, bool waitForConnected)
+bool BERGCloudBase::connect(const uint8_t (&productKey)[BC_PRODUCT_KEY_SIZE_BYTES], uint16_t version, bool waitForConnected)
 {
   _BC_SPI_TRANSACTION tr;
-  uint8_t version_be[sizeof(version)];
+  uint16_t hostType = BC_HOST_UNKNOWN;
+  uint8_t connectData [sizeof(version) + sizeof(hostType)];
 
   uint8_t lastState = BC_CONNECT_STATE_DISCONNECTED;
   uint8_t state;
 
+#ifndef BERGCLOUD_NO_HOST_TYPE
+  /* Get host type */
+  hostType = getHostType();
+#endif
+
   initTransaction(&tr);
 
-  version_be[0] = version >> 24;
-  version_be[1] = version >> 16;
-  version_be[2] = version >> 8;
-  version_be[3] = version;
+  connectData[0] = hostType;
+  connectData[1] = hostType >> 8;
+  connectData[2] = version;
+  connectData[3] = version >> 8;
 
   tr.command = SPI_CMD_SEND_PRODUCT_ANNOUNCE;
   tr.tx[0].buffer = (uint8_t *)productKey;
   tr.tx[0].dataSize = sizeof(productKey);
-  tr.tx[1].buffer = version_be;
-  tr.tx[1].dataSize = sizeof(version_be);
+  tr.tx[1].buffer = connectData;
+  tr.tx[1].dataSize = sizeof(connectData);
 
   if (!transaction(&tr))
   {
@@ -474,7 +480,7 @@ bool BERGCloudBase::getClaimingState(uint8_t& state)
   return transaction(&tr);
 }
 
-bool BERGCloudBase::getClaimcode(char (&claimcode)[BC_CLAIMCODE_SIZE_BYTES])
+bool BERGCloudBase::getClaimcode(const char (&claimcode)[BC_CLAIMCODE_SIZE_BYTES])
 {
   _BC_SPI_TRANSACTION tr;
 
@@ -533,7 +539,7 @@ bool BERGCloudBase::clearDisplay(void)
   return setDisplayStyle(BC_DISPLAY_CLEAR);
 }
 
-bool BERGCloudBase::print(const char *text)
+bool BERGCloudBase::display(const char *text)
 {
   _BC_SPI_TRANSACTION tr;
   uint8_t strLen = 0;

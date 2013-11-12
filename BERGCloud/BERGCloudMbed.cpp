@@ -129,9 +129,14 @@ void BERGCloudMbed::end()
   BERGCloudBase::end();
 }
 
-bool BERGCloudMbed::print(std::string& s)
+bool BERGCloudMbed::display(std::string& s)
 {
-  return print(s.c_str());
+  return display(s.c_str());
+}
+
+uint16_t BERGCloudMbed::getHostType(void)
+{
+  return BC_HOST_MBED;
 }
 
 #ifdef BERGCLOUD_PACK_UNPACK

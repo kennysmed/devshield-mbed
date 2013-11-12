@@ -89,6 +89,12 @@ THE SOFTWARE.
 #define BC_EUI64_PARENT                0x01
 #define BC_EUI64_COORDINATOR           0x02
 
+/* For SPI_CMD_SEND_PRODUCT_ANNOUNCE */
+#define BC_HOST_UNKNOWN                0x0000
+#define BC_HOST_ARDUINO                0x1000
+#define BC_HOST_MBED                   0x2000
+#define BC_HOST_LINUX                  0x3000
+
 /* For SPI_CMD_GET_CLAIM_STATE */
 #define BC_CLAIM_STATE_CLAIMED         0x00
 #define BC_CLAIM_STATE_NOT_CLAIMED     0x01

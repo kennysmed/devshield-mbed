@@ -76,11 +76,11 @@ public:
   /* Get the last-hop signal quality */
   bool getSignalQuality(int8_t& rssi, uint8_t& lqi);
   /* Connect */
-  bool connect(const uint8_t (&productKey)[BC_PRODUCT_KEY_SIZE_BYTES] = nullProductKey, uint32_t version = 0, bool waitForConnected = false);
+  bool connect(const uint8_t (&productKey)[BC_PRODUCT_KEY_SIZE_BYTES] = nullProductKey, uint16_t version = 0, bool waitForConnected = false);
   /* Check if the device has been claimed */
   bool getClaimingState(uint8_t& state);
   /* Get the current claimcode */
-  bool getClaimcode(char (&claimcode)[BC_CLAIMCODE_SIZE_BYTES]);
+  bool getClaimcode(const char (&claimcode)[BC_CLAIMCODE_SIZE_BYTES]);
   /* Get the EUI64 identifier for this node, its parent or the network coordinator */
   bool getEUI64(uint8_t type, uint8_t (&eui64)[BC_EUI64_SIZE_BYTES]);
   /* Get the Device Address */
@@ -89,8 +89,8 @@ public:
   bool setDisplayStyle(uint8_t style);
   /* Clear the OLED display */
   bool clearDisplay(void);
-  /* Print a line of text on the OLED display */
-  bool print(const char *text);
+  /* Display a line of text on the OLED display */
+  bool display(const char *text);
 
   /* Internal methods */
 public:
@@ -103,6 +103,7 @@ protected:
   virtual uint16_t SPITransaction(uint8_t *dataOut, uint8_t *dataIn, uint16_t dataSize, bool finalCS) = 0;
   virtual void timerReset(void) = 0;
   virtual uint32_t timerRead_mS(void) = 0;
+  virtual uint16_t getHostType(void) = 0;
 private:
   uint8_t SPITransaction(uint8_t data, bool finalCS);
   void initTransaction(_BC_SPI_TRANSACTION *tr);

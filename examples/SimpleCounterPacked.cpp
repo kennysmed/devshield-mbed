@@ -5,19 +5,35 @@
 
     This example code is in the public domain.
 
-    https://github.com/bergcloud/devboard-clientlib-mbed
+    https://github.com/bergcloud/devshield-mbed
 */
 
 #include "mbed.h"
 #include <BERGCloudMbed.h>
 
-CBERGCloud BERGCloud;
+BERGCloudMbed BERGCloud;
 
-// Freescale KL25Z pins
-#define MOSI_PIN PTD2
-#define MISO_PIN PTD3
-#define SCLK_PIN PTD1
-#define nSSEL_PIN PTD0
+// Select the pins to be used for the SPI interface
+
+#if defined(TARGET_LPC176X)
+// mbed DIP40 pinout
+#define MOSI_PIN  p5
+#define MISO_PIN  p6
+#define SCLK_PIN  p7
+#define nSSEL_PIN p8
+#endif
+
+#if defined(TARGET_KL25Z)
+// Arduino compatible pinout
+#define MOSI_PIN  D11
+#define MISO_PIN  D12
+#define SCLK_PIN  D13
+#define nSSEL_PIN D10
+#endif
+
+#if !defined(MOSI_PIN) || !defined(MISO_PIN) || !defined(SCLK_PIN) || !defined(nSSEL_PIN)
+#error Please add the pin names for your microcontroller.
+#endif
 
 // These values should be edited to reflect your Product setup on bergcloud.com
 
@@ -30,8 +46,6 @@ const uint8_t PRODUCT_KEY[BC_PRODUCT_KEY_SIZE_BYTES] =  \
 // Define your commands and events here, according to the schema from bergcloud.com
 
 #define EXAMPLE_EVENT_ID 0x01
-
-// DO NOT CHANGE DEFINES BELOW THIS LINE
 
 void loop(void);
 uint32_t counter;
@@ -67,7 +81,7 @@ void loop(void)
   uint8_t commandID;
   int8_t rssi;
   uint8_t lqi;
-  CMessage command, event;
+  BERGCloudMessage command, event;
   string text;
   unsigned int value;
   
@@ -114,9 +128,7 @@ void loop(void)
   
   event.pack("BERG");
   event.pack(counter);
-  
-  event.print_bytes();
- 
+
   counter++;
 
   if (BERGCloud.sendEvent(EXAMPLE_EVENT_ID, event))
