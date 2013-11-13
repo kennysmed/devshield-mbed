@@ -44,10 +44,10 @@ public:
   /* Methods using std::string class */
   bool display(std::string& s);
 private:
-  uint16_t SPITransaction(uint8_t *dataOut, uint8_t *dataIn, uint16_t dataSize, bool finalCS);
-  void timerReset(void);
-  uint32_t timerRead_mS(void);
-  uint16_t getHostType(void);
+  virtual uint16_t SPITransaction(uint8_t *dataOut, uint8_t *dataIn, uint16_t dataSize, bool finalCS);
+  virtual void timerReset(void);
+  virtual uint32_t timerRead_mS(void);
+  virtual uint16_t getHostType(void);
   SPI *spi;
   DigitalOut *nSSELPin;
   Timer *timer;

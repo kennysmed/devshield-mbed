@@ -67,7 +67,7 @@ public:
   bool pollForCommand(BERGCloudMessageBuffer& buffer, uint8_t& commandID);
 #endif
   /* Send an event */
-  bool sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t eventSize);
+  bool sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t eventSize, bool packed = false);
 #ifdef BERGCLOUD_PACK_UNPACK
   bool sendEvent(uint8_t eventCode, BERGCloudMessageBuffer& buffer);
 #endif
@@ -76,15 +76,15 @@ public:
   /* Get the last-hop signal quality */
   bool getSignalQuality(int8_t& rssi, uint8_t& lqi);
   /* Connect */
-  bool connect(const uint8_t (&productKey)[BC_PRODUCT_KEY_SIZE_BYTES] = nullProductKey, uint16_t version = 0, bool waitForConnected = false);
+  virtual bool connect(const uint8_t (&key)[BC_KEY_SIZE_BYTES] = nullKey, uint16_t version = 0, bool waitForConnected = false);
   /* Check if the device has been claimed */
   bool getClaimingState(uint8_t& state);
   /* Get the current claimcode */
-  bool getClaimcode(const char (&claimcode)[BC_CLAIMCODE_SIZE_BYTES]);
+  virtual bool getClaimcode(const char (&claimcode)[BC_CLAIMCODE_SIZE_BYTES]);
   /* Get the EUI64 identifier for this node, its parent or the network coordinator */
-  bool getEUI64(uint8_t type, uint8_t (&eui64)[BC_EUI64_SIZE_BYTES]);
+  virtual bool getEUI64(uint8_t type, uint8_t (&eui64)[BC_EUI64_SIZE_BYTES]);
   /* Get the Device Address */
-  bool getDeviceAddress(uint8_t (&address)[BC_ADDRESS_SIZE_BYTES]);
+  virtual bool getDeviceAddress(uint8_t (&address)[BC_ADDRESS_SIZE_BYTES]);
   /* Set the display style for the OLED display. This also clears the display. */
   bool setDisplayStyle(uint8_t style);
   /* Clear the OLED display */
@@ -95,7 +95,7 @@ public:
   /* Internal methods */
 public:
   uint8_t lastResponse;
-  static uint8_t nullProductKey[BC_PRODUCT_KEY_SIZE_BYTES];
+  static uint8_t nullKey[BC_KEY_SIZE_BYTES];
 protected:
   void begin(void);
   void end(void);

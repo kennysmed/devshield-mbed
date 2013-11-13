@@ -37,7 +37,7 @@ THE SOFTWARE.
 
 #define CONNECT_POLL_RATE_MS 250
 
-uint8_t BERGCloudBase::nullProductKey[BC_PRODUCT_KEY_SIZE_BYTES] = {0};
+uint8_t BERGCloudBase::nullKey[BC_KEY_SIZE_BYTES] = {0};
 
 bool BERGCloudBase::transaction(_BC_SPI_TRANSACTION *tr)
 {
@@ -353,9 +353,9 @@ bool BERGCloudBase::_sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t
   return transaction(&tr);
 }
 
-bool BERGCloudBase::sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t eventSize)
+bool BERGCloudBase::sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t eventSize, bool packed)
 {
-  return _sendEvent(eventCode, eventBuffer, eventSize, SPI_CMD_SEND_EVENT_RAW);
+  return _sendEvent(eventCode, eventBuffer, eventSize, packed ? SPI_CMD_SEND_EVENT_PACKED : SPI_CMD_SEND_EVENT_RAW);
 }
 
 #ifdef BERGCLOUD_PACK_UNPACK
@@ -398,7 +398,7 @@ bool BERGCloudBase::getSignalQuality(int8_t& rssi, uint8_t& lqi)
   return transaction(&tr);
 }
 
-bool BERGCloudBase::connect(const uint8_t (&productKey)[BC_PRODUCT_KEY_SIZE_BYTES], uint16_t version, bool waitForConnected)
+bool BERGCloudBase::connect(const uint8_t (&key)[BC_KEY_SIZE_BYTES], uint16_t version, bool waitForConnected)
 {
   _BC_SPI_TRANSACTION tr;
   uint16_t hostType = BC_HOST_UNKNOWN;
@@ -419,9 +419,9 @@ bool BERGCloudBase::connect(const uint8_t (&productKey)[BC_PRODUCT_KEY_SIZE_BYTE
   connectData[2] = version;
   connectData[3] = version >> 8;
 
-  tr.command = SPI_CMD_SEND_PRODUCT_ANNOUNCE;
-  tr.tx[0].buffer = (uint8_t *)productKey;
-  tr.tx[0].dataSize = sizeof(productKey);
+  tr.command = SPI_CMD_SEND_ANNOUNCE;
+  tr.tx[0].buffer = (uint8_t *)key;
+  tr.tx[0].dataSize = sizeof(key);
   tr.tx[1].buffer = connectData;
   tr.tx[1].dataSize = sizeof(connectData);
 

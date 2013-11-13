@@ -161,10 +161,9 @@ bool BERGCloudMessage::unpack(std::string& s)
     return false;
   }
 
-  std::string tmp(buffer[bytesRead], sizeInBytes);
+  s.clear();
+  s.append((const char *)&buffer[bytesRead], sizeInBytes);
   bytesRead += sizeInBytes;
-
-  s = tmp;
 
   return true;
 }

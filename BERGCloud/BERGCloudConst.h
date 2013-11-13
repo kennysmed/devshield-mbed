@@ -31,14 +31,14 @@ THE SOFTWARE.
 #define BC_EUI64_SIZE_BYTES            8
 #define BC_ADDRESS_SIZE_BYTES          8
 #define BC_CLAIMCODE_SIZE_BYTES        20
-#define BC_PRODUCT_KEY_SIZE_BYTES      16
+#define BC_KEY_SIZE_BYTES              16
 #define BC_PRINT_MAX_CHARS             26
 
 /*
  * Network commands
  */
 
-#define BC_EVENT_PRODUCT_ANNOUNCE      0xA000
+#define BC_EVENT_ANNOUNCE              0xA000
 #define BC_COMMAND_SET_ADDRESS         0xB000
 
 #define BC_COMMAND_START_RAW           0xC000
@@ -67,7 +67,7 @@ THE SOFTWARE.
 #define SPI_CMD_GET_SIGNAL_QUALITY     0x83
 #define SPI_CMD_GET_EUI64              0x90
 
-#define SPI_CMD_SEND_PRODUCT_ANNOUNCE  0xA0
+#define SPI_CMD_SEND_ANNOUNCE          0xA0
 #define SPI_CMD_GET_ADDRESS            0xB0
 #define SPI_CMD_POLL_FOR_COMMAND       0xC0
 #define SPI_CMD_SET_DISPLAY_STYLE      0xD0
@@ -89,7 +89,7 @@ THE SOFTWARE.
 #define BC_EUI64_PARENT                0x01
 #define BC_EUI64_COORDINATOR           0x02
 
-/* For SPI_CMD_SEND_PRODUCT_ANNOUNCE */
+/* For SPI_CMD_SEND_ANNOUNCE */
 #define BC_HOST_UNKNOWN                0x0000
 #define BC_HOST_ARDUINO                0x1000
 #define BC_HOST_MBED                   0x2000
