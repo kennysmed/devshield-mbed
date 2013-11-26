@@ -39,7 +39,7 @@ THE SOFTWARE.
 
 uint8_t BERGCloudBase::nullKey[BC_KEY_SIZE_BYTES] = {0};
 
-bool BERGCloudBase::transaction(_BC_SPI_TRANSACTION *tr)
+bool BERGCloudBase::_transaction(_BC_SPI_TRANSACTION *tr)
 {
   uint16_t i, j;
   uint8_t rxByte;
@@ -253,6 +253,18 @@ bool BERGCloudBase::transaction(_BC_SPI_TRANSACTION *tr)
   lastResponse = header[0];
 
   return (lastResponse == SPI_RSP_SUCCESS);
+}
+
+bool BERGCloudBase::transaction(_BC_SPI_TRANSACTION *tr)
+{
+  bool result;
+
+  /* For thread synchronisation */
+  lockTake();
+  result = _transaction(tr);
+  lockRelease();
+
+  return result;
 }
 
 void BERGCloudBase::initTransaction(_BC_SPI_TRANSACTION *tr)
@@ -567,16 +579,14 @@ bool BERGCloudBase::display(const char *text)
 
 uint16_t BERGCloudBase::Crc16(uint8_t data, uint16_t crc)
 {
-  /* From Ember's code */
-  crc = (crc >> 8) | (crc << 8);
-  crc ^= data;
-  crc ^= (crc & 0xff) >> 4;
-  crc ^= (crc << 8) << 4;
+  /* CRC16 CCITT (0x1021) */
 
-  crc ^= ( (uint8_t) ( (uint8_t) ( (uint8_t) (crc & 0xff) ) << 5)) |
-    ((uint16_t) ( (uint8_t) ( (uint8_t) (crc & 0xff)) >> 3) << 8);
+  uint8_t s;
+  uint16_t t;
 
-  return crc;
+  s = data ^ (crc >> 8);
+  t = s ^ (s >> 4);
+  return (crc << 8) ^ t ^ (t << 5) ^ (t << 12);
 }
 
 uint8_t BERGCloudBase::SPITransaction(uint8_t dataOut, bool finalCS)
@@ -586,6 +596,14 @@ uint8_t BERGCloudBase::SPITransaction(uint8_t dataOut, bool finalCS)
   SPITransaction(&dataOut, &dataIn, (uint16_t)1, finalCS);
 
   return dataIn;
+}
+
+void BERGCloudBase::lockTake(void)
+{
+}
+
+void BERGCloudBase::lockRelease(void)
+{
 }
 
 void BERGCloudBase::begin(void)

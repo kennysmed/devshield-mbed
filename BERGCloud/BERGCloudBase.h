@@ -107,8 +107,11 @@ protected:
 private:
   uint8_t SPITransaction(uint8_t data, bool finalCS);
   void initTransaction(_BC_SPI_TRANSACTION *tr);
+  bool _transaction(_BC_SPI_TRANSACTION *tr);
   bool transaction(_BC_SPI_TRANSACTION *tr);
   bool _sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t eventSize, uint8_t command);
+  void lockTake(void);
+  void lockRelease(void);
   bool synced;
 };
 

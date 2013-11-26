@@ -35,6 +35,7 @@ THE SOFTWARE.
 
 #define _LOG_PACK_ERROR_NO_SPACE    _LOG("Pack: Out of space.\r\n")
 #define _LOG_UNPACK_ERROR_TYPE      _LOG("Unpack: Can't convert to this variable type.\r\n")
+#define _LOG_UNPACK_ERROR_RANGE     _LOG("Unpack: Value out of range for this variable type.\r\n")
 #define _LOG_UNPACK_ERROR_NO_DATA   _LOG("Unpack: No more data.\r\n")
 
 #define IN_RANGE(value, min, max) ((value >= min) && (value <= max))
@@ -46,9 +47,6 @@ class BERGCloudMessageBase : public BERGCloudMessageBuffer
 public:
   BERGCloudMessageBase(void);
   ~BERGCloudMessageBase(void);
-
-  /* Remove all items */
-  void clear(void);
 
   /*
    *  Pack methods
@@ -140,8 +138,7 @@ protected:
   bool pack_raw_data(uint8_t *data, uint16_t sizeInBytes);
   bool unpack_raw_header(uint16_t *sizeInBytes);
   bool unpack_raw_data(uint8_t *data, uint16_t packedSizeInBytes, uint16_t bufferSizeInBytes);
-  bool getUnsignedInteger(uint32_t *value, uint8_t maxBytes);
-  bool getSignedInteger(int32_t *value, uint8_t maxBytes);
+  bool getInteger(void *value, bool valueIsSigned, int32_t min, uint32_t max);
 };
 
 #endif // #ifndef BERGCLOUDMESSAGEBASE_H
