@@ -26,6 +26,8 @@ THE SOFTWARE.
 
 */
 
+#define __STDC_LIMIT_MACROS /* Include C99 stdint defines in C++ code */
+#include <stdint.h>
 #include <stddef.h> /* For NULL */
 #include <string.h> /* For memcpy() */
 #include "BERGCloudMessageBase.h"
@@ -514,18 +516,11 @@ void BERGCloudMessageBase::print_bytes(void)
 }
 #endif
 
-bool BERGCloudMessageBase::getUnsignedInteger(uint32_t *value, uint8_t maxBytes)
+bool BERGCloudMessageBase::getInteger(void *value, bool valueIsSigned, int32_t min, uint32_t max)
 {
-  /* Try to decode the next messagePack item as an unsigned integer */
-  /* of less than or equal to 'maxBytes' size in bytes. */
-
   uint8_t type;
-
-  if (maxBytes == 0)
-  {
-    /* Invalid */
-    return false;
-  }
+  uint32_t unsignedValue;
+  int32_t signedValue;
 
   /* Look at next type */
   if (!peek(&type))
@@ -534,16 +529,16 @@ bool BERGCloudMessageBase::getUnsignedInteger(uint32_t *value, uint8_t maxBytes)
     return false;
   }
 
+  /*
+   * Unsigned types
+   */
+
   if (type <= _MP_FIXNUM_POS_MAX)
   {
-    /* Read fix num value */
-    *value = read();
-
-    /* Success */
-    return true;
+    /* Read positive fix num value */
+    unsignedValue = read();
   }
-
-  if (type == _MP_UINT8)
+  else if (type == _MP_UINT8)
   {
     if (!remaining(sizeof(uint8_t)))
     {
@@ -555,13 +550,9 @@ bool BERGCloudMessageBase::getUnsignedInteger(uint32_t *value, uint8_t maxBytes)
     read();
 
     /* Read 8-bit unsigned integer */
-    *value = read();
-
-    /* Success */
-    return true;
+    unsignedValue = read();
   }
-
-  if ((type == _MP_UINT16) && (maxBytes >= sizeof(uint16_t)))
+  else if (type == _MP_UINT16)
   {
     if (!remaining(sizeof(uint16_t)))
     {
@@ -573,15 +564,11 @@ bool BERGCloudMessageBase::getUnsignedInteger(uint32_t *value, uint8_t maxBytes)
     read();
 
     /* Read 16-bit unsigned integer */
-    *value = read();
-    *value = *value << 8;
-    *value |= read();
-
-    /* Success */
-    return true;
+    unsignedValue = read();
+    unsignedValue <<= 8;
+    unsignedValue |= read();
   }
-
-  if ((type == _MP_UINT32) && (maxBytes >= sizeof(uint32_t)))
+  else if (type == _MP_UINT32)
   {
     if (!remaining(sizeof(uint32_t)))
     {
@@ -593,124 +580,138 @@ bool BERGCloudMessageBase::getUnsignedInteger(uint32_t *value, uint8_t maxBytes)
     read();
 
     /* Read 32-bit unsigned integer */
-    *value = read();
-    *value = *value << 8;
-    *value |= read();
-    *value = *value << 8;
-    *value |= read();
-    *value = *value << 8;
-    *value |= read();
+    unsignedValue = read();
+    unsignedValue <<= 8;
+    unsignedValue |= read();
+    unsignedValue <<= 8;
+    unsignedValue |= read();
+    unsignedValue <<= 8;
+    unsignedValue |= read();
+  }
+  else
+  {
+    /*
+     * Signed values
+     */
+
+    if (IN_RANGE(type, _MP_FIXNUM_NEG_MIN, _MP_FIXNUM_NEG_MAX))
+    {
+      /* Read negative fix num value */
+      uint8_t temp;
+      temp = read();
+      signedValue = (int8_t)temp; /* Convert with sign extension */
+    }
+    else if (type == _MP_INT8)
+    {
+      if (!remaining(sizeof(int8_t)))
+      {
+        _LOG_UNPACK_ERROR_NO_DATA;
+        return false;
+      }
+
+      /* Read type */
+      read();
+
+      /* Read 8-bit signed integer */
+      uint8_t temp;
+      temp = read();
+      signedValue = (int8_t)temp; /* Convert with sign extension */
+    }
+    else if (type == _MP_INT16)
+    {
+      if (!remaining(sizeof(int16_t)))
+      {
+        _LOG_UNPACK_ERROR_NO_DATA;
+        return false;
+      }
+
+      /* Read type */
+      read();
+
+      /* Read 16-bit signed integer */
+      uint16_t temp;
+      temp = read();
+      temp <<= 8;
+      temp |= read();
+      signedValue = (int16_t)temp; /* Convert with sign extension */
+    }
+    else if (type == _MP_INT32)
+    {
+      if (!remaining(sizeof(int32_t)))
+      {
+        _LOG_UNPACK_ERROR_NO_DATA;
+        return false;
+      }
+
+      /* Read type */
+      read();
+
+      /* Read 32-bit signed integer */
+      uint32_t temp;
+      temp = read();
+      temp <<= 8;
+      temp |= read();
+      temp <<= 8;
+      temp |= read();
+      temp <<= 8;
+      temp |= read();
+      signedValue = (int32_t)temp; /* Convert */
+    }
+    else
+    {
+      /* Can't convert this type */
+      _LOG_UNPACK_ERROR_TYPE;
+      return false;
+    }
+
+    /* Signed value decoded check range */
+    if (signedValue > 0)
+    {
+      if ((uint32_t)signedValue > max)
+      {
+        _LOG_UNPACK_ERROR_RANGE;
+        return false;
+      }
+    }
+    else if (signedValue < min)
+    {
+      _LOG_UNPACK_ERROR_RANGE;
+      return false;
+    }
+
+    if (valueIsSigned)
+    {
+      *(int32_t *)value = signedValue;
+    }
+    else
+    {
+      /* Convert to unsigned */
+      *(uint32_t *)value = (uint32_t)signedValue;
+    }
 
     /* Success */
     return true;
   }
 
-  /* Can't convert this type */
-  _LOG_UNPACK_ERROR_TYPE;
-  return false;
-}
-
-bool BERGCloudMessageBase::getSignedInteger(int32_t *value, uint8_t maxBytes)
-{
-  /* Try to decode the next messagePack item as an signed integer */
-  /* of less than or equal to 'maxBytes' size in bytes. */
-
-  uint8_t type;
-
-  if (maxBytes == 0)
+  /* Unsigned value decoded; check range */
+  if (unsignedValue > max)
   {
-    /* Invalid */
+    _LOG_UNPACK_ERROR_RANGE;
     return false;
   }
 
-  /* Look at next type */
-  if (!peek(&type))
+  if (valueIsSigned)
   {
-    _LOG_UNPACK_ERROR_NO_DATA;
-    return false;
+    /* Convert to signed */
+    *(int32_t *)value = (int32_t)unsignedValue;
+  }
+  else
+  {
+    *(uint32_t *)value = unsignedValue;
   }
 
-  if (type <= _MP_FIXNUM_POS_MAX)
-  {
-    /* Read fix num value */
-    *value = (int32_t)read();
-
-    /* Success */
-    return true;
-  }
-
-  if (IN_RANGE(type, _MP_FIXNUM_NEG_MIN, _MP_FIXNUM_NEG_MAX))
-  {
-    /* Read fix num value */
-    *value = (int32_t)read();
-
-    /* Success */
-    return true;
-  }
-
-  if (type == _MP_INT8)
-  {
-    if (!remaining(sizeof(int8_t)))
-    {
-      _LOG_UNPACK_ERROR_NO_DATA;
-      return false;
-    }
-
-    /* Read type */
-    read();
-
-    /* Read 8-bit signed integer */
-    *value = (int32_t)read();
-    return true;
-  }
-
-  if ((type == _MP_INT16) && (maxBytes >= sizeof(int16_t)))
-  {
-    if (!remaining(sizeof(int16_t)))
-    {
-      _LOG_UNPACK_ERROR_NO_DATA;
-      return false;
-    }
-
-    /* Read type */
-    read();
-
-    /* Read 16-bit signed integer */
-    *value = read();
-    *value = *value << 8;
-    *value |= read();
-
-    /* Success */
-    return true;
-  }
-
-  if ((type == _MP_INT32) && (maxBytes >= sizeof(int32_t)))
-  {
-    if (!remaining(sizeof(int32_t)))
-    {
-      _LOG_UNPACK_ERROR_NO_DATA;
-      return false;
-    }
-
-    /* Read type */
-    read();
-
-    /* Read 32-bit signed integer */
-    *value = read();
-    *value = *value << 8;
-    *value |= read();
-    *value = *value << 8;
-    *value |= read();
-    *value = *value << 8;
-    *value |= read();
-
-    /* Success */
-    return true;
-  }
-
-  /* Can't convert this type */
-  _LOG_UNPACK_ERROR_TYPE;
-  return false;
+  /* Success */
+  return true;
 }
 
 bool BERGCloudMessageBase::unpack_skip(void)
@@ -811,7 +812,7 @@ bool BERGCloudMessageBase::unpack(uint8_t& n)
 {
   uint32_t temp;
 
-  if (!getUnsignedInteger(&temp, sizeof(uint8_t)))
+  if (!getInteger(&temp, false, 0, UINT8_MAX))
   {
     return false;
   }
@@ -824,7 +825,7 @@ bool BERGCloudMessageBase::unpack(uint16_t& n)
 {
   uint32_t temp;
 
-  if (!getUnsignedInteger(&temp, sizeof(uint16_t)))
+  if (!getInteger(&temp, false, 0, UINT16_MAX))
   {
     return false;
   }
@@ -837,7 +838,7 @@ bool BERGCloudMessageBase::unpack(uint32_t& n)
 {
   uint32_t temp;
 
-  if (!getUnsignedInteger(&temp, sizeof(uint32_t)))
+  if (!getInteger(&temp, false, 0, UINT32_MAX))
   {
     return false;
   }
@@ -850,7 +851,7 @@ bool BERGCloudMessageBase::unpack(int8_t& n)
 {
   int32_t temp;
 
-  if (!getSignedInteger(&temp, sizeof(int8_t)))
+  if (!getInteger(&temp, true, INT8_MIN, INT8_MAX))
   {
     return false;
   }
@@ -863,7 +864,7 @@ bool BERGCloudMessageBase::unpack(int16_t& n)
 {
   int32_t temp;
 
-  if (!getSignedInteger(&temp, sizeof(int16_t)))
+  if (!getInteger(&temp, true, INT16_MIN, INT16_MAX))
   {
     return false;
   }
@@ -876,7 +877,7 @@ bool BERGCloudMessageBase::unpack(int32_t& n)
 {
   int32_t temp;
 
-  if (!getSignedInteger(&temp, sizeof(int32_t)))
+  if (!getInteger(&temp, true, INT32_MIN, INT32_MAX))
   {
     return false;
   }

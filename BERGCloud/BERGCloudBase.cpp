@@ -28,7 +28,7 @@ THE SOFTWARE.
 #define __STDC_LIMIT_MACROS /* Include C99 stdint defines in C++ code */
 #include <stdint.h>
 #include <stddef.h>
-#include <string.h> /* For memcpy() */
+#include <string.h> /* For memset() */
 
 #include "BERGCloudBase.h"
 
@@ -37,9 +37,14 @@ THE SOFTWARE.
 
 #define CONNECT_POLL_RATE_MS 250
 
+/* MessagePack for named commands and events */
+#define _MP_FIXRAW_MIN      0xa0
+#define _MP_FIXRAW_MAX      0xbf
+#define _MAX_FIXRAW         (_MP_FIXRAW_MAX - _MP_FIXRAW_MIN)
+
 uint8_t BERGCloudBase::nullKey[BC_KEY_SIZE_BYTES] = {0};
 
-bool BERGCloudBase::transaction(_BC_SPI_TRANSACTION *tr)
+bool BERGCloudBase::_transaction(_BC_SPI_TRANSACTION *tr)
 {
   uint16_t i, j;
   uint8_t rxByte;
@@ -255,6 +260,18 @@ bool BERGCloudBase::transaction(_BC_SPI_TRANSACTION *tr)
   return (lastResponse == SPI_RSP_SUCCESS);
 }
 
+bool BERGCloudBase::transaction(_BC_SPI_TRANSACTION *tr)
+{
+  bool result;
+
+  /* For thread synchronisation */
+  lockTake();
+  result = _transaction(tr);
+  lockRelease();
+
+  return result;
+}
+
 void BERGCloudBase::initTransaction(_BC_SPI_TRANSACTION *tr)
 {
   memset(tr, 0x00, sizeof(_BC_SPI_TRANSACTION));
@@ -263,6 +280,8 @@ void BERGCloudBase::initTransaction(_BC_SPI_TRANSACTION *tr)
 bool BERGCloudBase::pollForCommand(uint8_t *commandBuffer, uint16_t commandBufferSize, uint16_t& commandSize, uint8_t& commandID)
 {
   /* Returns TRUE if a valid command has been received */
+
+  _LOG("pollForCommand() methods returning a command ID number have been deprecated.\r\n");
 
   _BC_SPI_TRANSACTION tr;
   uint8_t cmdID[2] = {0};
@@ -291,10 +310,79 @@ bool BERGCloudBase::pollForCommand(uint8_t *commandBuffer, uint16_t commandBuffe
   return false;
 }
 
+bool BERGCloudBase::pollForCommand(uint8_t *commandBuffer, uint16_t commandBufferSize, uint16_t& commandSize, char *commandName, uint8_t commandNameMaxSize)
+{
+  /* Returns TRUE if a valid command has been received */
+
+  _BC_SPI_TRANSACTION tr;
+  uint8_t cmdID[2] = {0};
+  uint16_t cmdIDSize = 0;
+  uint8_t commandNameSize;
+  uint8_t originalCommandNameSize;
+  uint8_t msgPackByte;
+  uint16_t command;
+
+  if ((commandName == NULL) || (commandNameMaxSize < 2))
+  {
+    return false;
+  }
+
+  initTransaction(&tr);
+
+  tr.command = SPI_CMD_POLL_FOR_COMMAND;
+
+  tr.rx[0].buffer = cmdID;
+  tr.rx[0].bufferSize = sizeof(cmdID);
+  tr.rx[0].dataSize = &cmdIDSize;
+
+  tr.rx[1].buffer = commandBuffer;
+  tr.rx[1].bufferSize = commandBufferSize;
+  tr.rx[1].dataSize = &commandSize;
+
+  if (transaction(&tr))
+  {
+    command = (cmdID[0] << 8) | cmdID[1];
+    if (command == BC_COMMAND_NAMED_PACKED)
+    {
+      /* Get command name string size */
+      msgPackByte = *commandBuffer;
+
+      if ((msgPackByte <_MP_FIXRAW_MIN) || (msgPackByte > _MP_FIXRAW_MAX))
+      {
+        /* Invalid */
+        return false;
+      }
+
+      commandNameSize = originalCommandNameSize = msgPackByte - _MP_FIXRAW_MIN;
+
+      /* Limit to the size of the buffer provided */
+      if (commandNameSize > (commandNameMaxSize-1)) /* -1 for null terminator */
+      {
+        commandNameSize = (commandNameMaxSize-1);
+      }
+
+      /* Copy command name string as a null-terminated C string */
+      bytecpy((uint8_t *)commandName, (commandBuffer+1), commandNameSize); /* +1 for messagePack fixraw byte */
+      commandName[commandNameSize] = '\0';
+
+      /* Move up remaining packed data, update size */
+      commandSize -= (originalCommandNameSize + 1); /* +1 for messagePack fixraw byte */
+      bytecpy(commandBuffer, commandBuffer + (originalCommandNameSize + 1), commandSize);
+      return true;
+    }
+  }
+
+  *commandName = '\0';
+  commandSize = 0;
+  return false;
+}
+
 #ifdef BERGCLOUD_PACK_UNPACK
 bool BERGCloudBase::pollForCommand(BERGCloudMessageBuffer& buffer, uint8_t& commandID)
 {
   /* Returns TRUE if a valid command has been received */
+
+  _LOG("pollForCommand() methods returning a command ID number have been deprecated.\r\n");
 
   _BC_SPI_TRANSACTION tr;
   uint8_t cmdID[2] = {0};
@@ -325,11 +413,84 @@ bool BERGCloudBase::pollForCommand(BERGCloudMessageBuffer& buffer, uint8_t& comm
   buffer.used(0);
   return false;
 }
+
+bool BERGCloudBase::pollForCommand(BERGCloudMessageBuffer& buffer, char *commandName, uint8_t commandNameMaxSize)
+{
+  /* Returns TRUE if a valid command has been received */
+
+  _BC_SPI_TRANSACTION tr;
+  uint8_t cmdID[2] = {0};
+  uint16_t cmdIDSize = 0;
+  uint16_t dataSize = 0;
+  uint8_t commandNameSize;
+  uint8_t originalCommandNameSize;
+  uint8_t msgPackByte;
+  uint16_t command;
+
+  if ((commandName == NULL) || (commandNameMaxSize < 2))
+  {
+    return false;
+  }
+
+  initTransaction(&tr);
+  buffer.clear();
+
+  tr.command = SPI_CMD_POLL_FOR_COMMAND;
+
+  tr.rx[0].buffer = cmdID;
+  tr.rx[0].bufferSize = sizeof(cmdID);
+  tr.rx[0].dataSize = &cmdIDSize;
+
+  tr.rx[1].buffer = buffer.ptr();
+  tr.rx[1].bufferSize = buffer.size();
+  tr.rx[1].dataSize = &dataSize;
+
+  if (transaction(&tr))
+  {
+    command = (cmdID[0] << 8) | cmdID[1];
+    if (command == BC_COMMAND_NAMED_PACKED)
+    {
+      /* Get command name string size */
+      msgPackByte = *buffer.ptr();
+
+      if ((msgPackByte <_MP_FIXRAW_MIN) || (msgPackByte > _MP_FIXRAW_MAX))
+      {
+        /* Invalid */
+        return false;
+      }
+
+      commandNameSize = originalCommandNameSize = msgPackByte - _MP_FIXRAW_MIN;
+
+      /* Limit to the size of the buffer provided */
+      if (commandNameSize > (commandNameMaxSize-1)) /* -1 for null terminator */
+      {
+        commandNameSize = (commandNameMaxSize-1);
+      }
+
+      /* Copy command name string as a null-terminated C string */
+      bytecpy((uint8_t *)commandName, (buffer.ptr()+1), commandNameSize); /* +1 for messagePack fixraw byte */
+      commandName[commandNameSize] = '\0';
+
+      /* Move up remaining packed data, update size */
+      dataSize -= (originalCommandNameSize + 1); /* +1 for messagePack fixraw byte */
+      bytecpy(buffer.ptr(), buffer.ptr() + (originalCommandNameSize + 1), dataSize);
+
+      buffer.used(dataSize);
+      return true;
+    }
+  }
+
+  buffer.used(0);
+  *commandName = '\0';
+  return false;
+}
 #endif
 
 bool BERGCloudBase::_sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t eventSize, uint8_t command)
 {
   /* Returns TRUE if the event is sent successfully */
+
+  _LOG("sendEvent() methods using an eventCode number have been deprecated.\r\n");
 
   _BC_SPI_TRANSACTION tr;
   uint8_t header[4] = {0};
@@ -355,7 +516,60 @@ bool BERGCloudBase::_sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t
 
 bool BERGCloudBase::sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t eventSize, bool packed)
 {
+
   return _sendEvent(eventCode, eventBuffer, eventSize, packed ? SPI_CMD_SEND_EVENT_PACKED : SPI_CMD_SEND_EVENT_RAW);
+}
+
+bool BERGCloudBase::sendEvent(const char *eventName, uint8_t *eventBuffer, uint16_t eventSize, bool packed)
+{
+  /* Returns TRUE if the event is sent successfully */
+
+  _BC_SPI_TRANSACTION tr;
+  uint8_t headerSize = 5; /* Four bytes of SPI header, one byte of messagePack type */
+  uint8_t header[5 + _MAX_FIXRAW] = {0}; /* Header size plus maximum name string size */
+
+  if (!packed)
+  {
+    /* We only support packed data now */
+    return false;
+  }
+
+  if ((eventName == NULL) || (eventName[0] == '\0'))
+  {
+    _LOG("Event name must be at least one character.\r\n");
+    return false;
+  }
+
+  /* Create SPI header */
+  header[0] = BC_EVENT_NAMED_PACKED & BC_EVENT_ID_MASK;
+  header[1] = 0;
+  header[2] = 0;
+  header[3] = 0;
+
+  /* Create string header in messagePack format */
+  header[4] = _MP_FIXRAW_MIN;
+  while ((*eventName != '\0') && (headerSize < sizeof(header)))
+  {
+    /* Copy string, update messagePack byte */
+    header[4]++;
+    header[headerSize++] = *eventName++;
+  }
+
+  if (eventSize > ((uint16_t)SPI_MAX_PAYLOAD_SIZE_BYTES - headerSize))
+  {
+    _LOG("Event is too big.\r\n");
+    return false;
+  }
+
+  initTransaction(&tr);
+
+  tr.command = SPI_CMD_SEND_EVENT_PACKED;
+  tr.tx[0].buffer = (uint8_t *)header;
+  tr.tx[0].dataSize = headerSize;
+  tr.tx[1].buffer = eventBuffer;
+  tr.tx[1].dataSize = eventSize;
+
+  return transaction(&tr);
 }
 
 #ifdef BERGCLOUD_PACK_UNPACK
@@ -367,6 +581,52 @@ bool BERGCloudBase::sendEvent(uint8_t eventCode, BERGCloudMessageBuffer& buffer)
 
   buffer.clear();
   return result;
+}
+
+bool BERGCloudBase::sendEvent(const char *eventName, BERGCloudMessageBuffer& buffer)
+{
+  /* Returns TRUE if the event is sent successfully */
+
+  _BC_SPI_TRANSACTION tr;
+  uint8_t headerSize = 5; /* Four bytes of SPI header, one byte of messagePack type */
+  uint8_t header[5 + _MAX_FIXRAW] = {0}; /* Header size plus maximum name string size */
+
+  if ((eventName == NULL) || (eventName[0] == '\0'))
+  {
+    _LOG("Event name must be at least one character.\r\n");
+    return false;
+  }
+
+  /* Create SPI header */
+  header[0] = BC_EVENT_NAMED_PACKED & BC_EVENT_ID_MASK;
+  header[1] = 0;
+  header[2] = 0;
+  header[3] = 0;
+
+  /* Create string header in messagePack format */
+  header[4] = _MP_FIXRAW_MIN;
+  while ((*eventName != '\0') && (headerSize < sizeof(header)))
+  {
+    /* Copy string, update messagePack byte */
+    header[4]++;
+    header[headerSize++] = *eventName++;
+  }
+
+  if (buffer.used() > ((uint16_t)SPI_MAX_PAYLOAD_SIZE_BYTES - headerSize))
+  {
+    _LOG("Event is too big.\r\n");
+    return false;
+  }
+
+  initTransaction(&tr);
+
+  tr.command = SPI_CMD_SEND_EVENT_PACKED;
+  tr.tx[0].buffer = (uint8_t *)header;
+  tr.tx[0].dataSize = headerSize;
+  tr.tx[1].buffer = buffer.ptr();
+  tr.tx[1].dataSize = buffer.used();
+
+  return transaction(&tr);
 }
 #endif
 
@@ -465,6 +725,31 @@ bool BERGCloudBase::connect(const uint8_t (&key)[BC_KEY_SIZE_BYTES], uint16_t ve
   }
 
   return true;
+}
+
+bool BERGCloudBase::connect(const char *key, uint16_t version, bool waitForConnected)
+{
+  unsigned int tmp_key[BC_KEY_SIZE_BYTES] = {0};
+  uint8_t _key[BC_KEY_SIZE_BYTES] = {0};
+  uint8_t i;
+
+  /* Convert key from ASCII */
+  if (key != NULL)
+  {
+    if (sscanf(key, "%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x",
+      &tmp_key[0],  &tmp_key[1],  &tmp_key[2],  &tmp_key[3],
+      &tmp_key[4],  &tmp_key[5],  &tmp_key[6],  &tmp_key[7],
+      &tmp_key[8],  &tmp_key[9],  &tmp_key[10], &tmp_key[11],
+      &tmp_key[12], &tmp_key[13], &tmp_key[14], &tmp_key[15]) == 16)
+    {
+      for (i=0; i<sizeof(_key); i++)
+      {
+        _key[i] = (uint8_t)tmp_key[i];
+      }
+    }
+  }
+
+  return connect(_key, version, waitForConnected);
 }
 
 bool BERGCloudBase::getClaimingState(uint8_t& state)
@@ -567,16 +852,14 @@ bool BERGCloudBase::display(const char *text)
 
 uint16_t BERGCloudBase::Crc16(uint8_t data, uint16_t crc)
 {
-  /* From Ember's code */
-  crc = (crc >> 8) | (crc << 8);
-  crc ^= data;
-  crc ^= (crc & 0xff) >> 4;
-  crc ^= (crc << 8) << 4;
+  /* CRC16 CCITT (0x1021) */
 
-  crc ^= ( (uint8_t) ( (uint8_t) ( (uint8_t) (crc & 0xff) ) << 5)) |
-    ((uint16_t) ( (uint8_t) ( (uint8_t) (crc & 0xff)) >> 3) << 8);
+  uint8_t s;
+  uint16_t t;
 
-  return crc;
+  s = data ^ (crc >> 8);
+  t = s ^ (s >> 4);
+  return (crc << 8) ^ t ^ (t << 5) ^ (t << 12);
 }
 
 uint8_t BERGCloudBase::SPITransaction(uint8_t dataOut, bool finalCS)
@@ -588,12 +871,36 @@ uint8_t BERGCloudBase::SPITransaction(uint8_t dataOut, bool finalCS)
   return dataIn;
 }
 
+void BERGCloudBase::lockTake(void)
+{
+}
+
+void BERGCloudBase::lockRelease(void)
+{
+}
+
 void BERGCloudBase::begin(void)
 {
   synced = false;
   lastResponse = SPI_RSP_SUCCESS;
+
+  /* Print library version */
+  _LOG("\r\nBERGCloud library version ");
+  _LOG_HEX(BERGCLOUD_LIB_VERSION >> 8);
+  _LOG(".");
+  _LOG_HEX(BERGCLOUD_LIB_VERSION & 0xff);
+  _LOG("\r\n");
 }
 
 void BERGCloudBase::end(void)
 {
+}
+
+void BERGCloudBase::bytecpy(uint8_t *dst, uint8_t *src, uint16_t size)
+{
+  /* memcpy() cannot be used when buffers overlap */
+  while (size-- > 0)
+  {
+    *dst++ = *src++;
+  }
 }

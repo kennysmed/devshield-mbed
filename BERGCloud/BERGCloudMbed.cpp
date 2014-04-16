@@ -168,4 +168,20 @@ bool BERGCloudMessage::unpack(std::string& s)
   return true;
 }
 
+bool BERGCloudMbed::pollForCommand(BERGCloudMessageBuffer& buffer, string &commandName)
+{
+  bool result = false;
+  char tmp[31 + 1]; /* +1 for null terminator */
+
+  commandName = ""; /* Empty string */
+  result = pollForCommand(buffer, tmp, sizeof(tmp));
+
+  if (result)
+  {
+    commandName = string(tmp);
+  }
+
+  return result;
+}
+
 #endif // #ifdef BERGCLOUD_PACK_UNPACK

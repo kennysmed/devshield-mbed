@@ -43,6 +43,7 @@ THE SOFTWARE.
 
 #define BC_COMMAND_START_RAW           0xC000
 #define BC_COMMAND_START_PACKED        0xC100
+#define BC_COMMAND_NAMED_PACKED        0xC17F
 #define BC_COMMAND_ID_MASK             0x00FF
 #define BC_COMMAND_FORMAT_MASK         0xFF00
 
@@ -51,6 +52,7 @@ THE SOFTWARE.
 
 #define BC_EVENT_START_RAW             0xE000
 #define BC_EVENT_START_PACKED          0xE100
+#define BC_EVENT_NAMED_PACKED          0xE17F
 #define BC_EVENT_ID_MASK               0x00FF
 #define BC_EVENT_FORMAT_MASK           0xFF00
 

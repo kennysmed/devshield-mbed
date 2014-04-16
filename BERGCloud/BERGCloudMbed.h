@@ -40,9 +40,11 @@ class BERGCloudMbed : public BERGCloudBase
 public:
   void begin(PinName _MOSIPin, PinName _MISOPin, PinName _SCLKPin, PinName _nSSELPin);
   void end();
-  using BERGCloudBase::display;
   /* Methods using std::string class */
+  using BERGCloudBase::display;
   bool display(std::string& s);
+  using BERGCloudBase::pollForCommand;
+  bool pollForCommand(BERGCloudMessageBuffer& buffer, string &commandName);
 private:
   virtual uint16_t SPITransaction(uint8_t *dataOut, uint8_t *dataIn, uint16_t dataSize, bool finalCS);
   virtual void timerReset(void);

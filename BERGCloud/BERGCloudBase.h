@@ -36,7 +36,7 @@ THE SOFTWARE.
 #include "BERGCloudMessageBuffer.h"
 #endif
 
-#define BERGCLOUD_LIB_VERSION (0x0100)
+#define BERGCLOUD_LIB_VERSION (0x0200)
 
 #define _TX_GROUPS (2)
 #define _RX_GROUPS (2)
@@ -63,13 +63,17 @@ class BERGCloudBase
 public:
   /* Check for a command */
   bool pollForCommand(uint8_t *commandBuffer, uint16_t commandBufferSize, uint16_t& commandSize, uint8_t& commandID);
+  bool pollForCommand(uint8_t *commandBuffer, uint16_t commandBufferSize, uint16_t& commandSize, char *commandName, uint8_t commandNameMaxSize);
 #ifdef BERGCLOUD_PACK_UNPACK
   bool pollForCommand(BERGCloudMessageBuffer& buffer, uint8_t& commandID);
+  bool pollForCommand(BERGCloudMessageBuffer& buffer, char *commandName, uint8_t commandNameMaxSize);
 #endif
   /* Send an event */
-  bool sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t eventSize, bool packed = false);
+  bool sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t eventSize, bool packed = true);
+  bool sendEvent(const char *eventName, uint8_t *eventBuffer, uint16_t eventSize, bool packed = true);
 #ifdef BERGCLOUD_PACK_UNPACK
   bool sendEvent(uint8_t eventCode, BERGCloudMessageBuffer& buffer);
+  bool sendEvent(const char *eventName, BERGCloudMessageBuffer& buffer);
 #endif
   /* Get the connection state */
   bool getConnectionState(uint8_t& state);
@@ -77,6 +81,7 @@ public:
   bool getSignalQuality(int8_t& rssi, uint8_t& lqi);
   /* Connect */
   virtual bool connect(const uint8_t (&key)[BC_KEY_SIZE_BYTES] = nullKey, uint16_t version = 0, bool waitForConnected = false);
+  virtual bool connect(const char *key = NULL, uint16_t version = 0, bool waitForConnected = false);
   /* Check if the device has been claimed */
   bool getClaimingState(uint8_t& state);
   /* Get the current claimcode */
@@ -107,8 +112,12 @@ protected:
 private:
   uint8_t SPITransaction(uint8_t data, bool finalCS);
   void initTransaction(_BC_SPI_TRANSACTION *tr);
+  bool _transaction(_BC_SPI_TRANSACTION *tr);
   bool transaction(_BC_SPI_TRANSACTION *tr);
   bool _sendEvent(uint8_t eventCode, uint8_t *eventBuffer, uint16_t eventSize, uint8_t command);
+  void bytecpy(uint8_t *dst, uint8_t *src, uint16_t size);
+  void lockTake(void);
+  void lockRelease(void);
   bool synced;
 };
 
